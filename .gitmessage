@@ -1,0 +1,36 @@
+# <type>(<scope>): <subject>
+#
+# <body>
+#
+# <footer>
+
+# Type should be one of:
+# feat:     A new feature
+# fix:      A bug fix
+# docs:     Documentation only changes
+# style:    Changes that do not affect the meaning of the code
+# refactor: A code change that neither fixes a bug nor adds a feature
+# perf:     A code change that improves performance
+# test:     Adding missing tests or correcting existing tests
+# build:    Changes that affect the build system or external dependencies
+# ci:       Changes to our CI configuration files and scripts
+# chore:    Other changes that don't modify src or test files
+# revert:   Reverts a previous commit
+# wip:      Work in progress
+
+# Scope is optional and should be lowercase
+# Subject should be 50 characters or less, sentence case, no period
+# Body should wrap at 72 characters
+# Footer should contain closing issues, breaking changes, etc.
+
+# Examples:
+# feat(api): Add user authentication endpoint
+# fix(ui): Correct button alignment in header
+# docs: Update API documentation for v2.0
+# style: Format code according to style guide
+# refactor(core): Simplify pipeline execution logic
+# perf(db): Optimize database queries for user lookup
+# test(api): Add unit tests for auth service
+# build: Update dependencies to latest versions
+# ci: Configure automated testing pipeline
+# chore: Update .gitignore for new build artifacts

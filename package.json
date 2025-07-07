@@ -1,0 +1,42 @@
+{
+  "name": "imaginarium",
+  "version": "1.0.0",
+  "description": "AI content generation pipeline automation platform",
+  "main": "index.js",
+  "scripts": {
+    "dev": "echo 'Development server not configured yet'",
+    "build": "echo 'Build script not configured yet'",
+    "test": "echo 'Test script not configured yet'",
+    "lint": "echo 'Lint script not configured yet'",
+    "prepare": "husky install"
+  },
+  "keywords": [
+    "ai",
+    "automation",
+    "pipeline",
+    "content-generation",
+    "typescript",
+    "nodejs"
+  ],
+  "author": "Imaginarium Team",
+  "license": "MIT",
+  "devDependencies": {
+    "husky": "^8.0.3",
+    "@commitlint/cli": "^18.4.3",
+    "@commitlint/config-conventional": "^18.4.3",
+    "lint-staged": "^15.2.0"
+  },
+  "lint-staged": {
+    "*.{js,ts,tsx}": [
+      "echo 'Linting TypeScript files (lint not configured yet)'"
+    ],
+    "*.{json,md}": [
+      "echo 'Formatting JSON/MD files (prettier not configured yet)'"
+    ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  }
+}
