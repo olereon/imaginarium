@@ -1,0 +1,969 @@
+// Enhanced Prisma schema with comprehensive indexing strategy
+// This file demonstrates optimal indexing for both SQLite (dev) and PostgreSQL (prod)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ========== User Management Models ==========
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  
+  // Profile fields
+  name          String?
+  firstName     String?
+  lastName      String?
+  avatar        String?
+  bio           String?
+  company       String?
+  location      String?
+  website       String?
+  timezone      String?
+  
+  // Account status
+  role          UserRole  @default(VIEWER)
+  isActive      Boolean   @default(true)
+  emailVerified Boolean   @default(false)
+  
+  // Email preferences
+  emailOnPipelineComplete Boolean @default(true)
+  emailOnPipelineError    Boolean @default(true)
+  emailOnWeeklyReport     Boolean @default(false)
+  
+  // Account limits
+  maxPipelines  Int       @default(10)
+  maxExecutionsPerMonth Int @default(100)
+  
+  // Two-factor authentication
+  twoFactorEnabled      Boolean   @default(false)
+  twoFactorSecret       String?
+  
+  // Password reset
+  passwordResetToken    String?
+  passwordResetExpires  DateTime?
+  
+  // Email verification
+  emailVerificationToken String?
+  emailVerificationExpires DateTime?
+  
+  // Soft delete support
+  deletedAt     DateTime?
+  deletedBy     String?
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+  
+  // Relations
+  sessions      Session[]
+  apiKeys       ApiKey[]
+  pipelines     Pipeline[]
+  executions    PipelineRun[]
+  files         FileUpload[]
+  
+  // Enhanced indexes for User model
+  @@index([email])                                    // Existing: Login queries
+  @@index([deletedAt])                               // Existing: Soft delete filtering
+  @@index([role, isActive])                          // NEW: Admin dashboard queries
+  @@index([emailVerified, isActive])                 // NEW: User verification status
+  @@index([createdAt])                              // NEW: User registration analytics
+  @@index([lastLoginAt])                            // NEW: User activity tracking
+  @@index([company])                                // NEW: Company filtering
+  @@index([location])                               // NEW: Geographic analytics
+  @@index([twoFactorEnabled])                       // NEW: Security analytics
+  @@index([maxPipelines, maxExecutionsPerMonth])    // NEW: Usage limit queries
+  @@index([passwordResetToken], map: "idx_password_reset") // NEW: Password reset lookup
+  @@index([emailVerificationToken], map: "idx_email_verification") // NEW: Email verification lookup
+  @@map("users")
+}
+
+model Session {
+  id            String   @id @default(cuid())
+  userId        String
+  token         String   @unique
+  refreshToken  String   @unique
+  expiresAt     DateTime
+  
+  // Device and location info
+  userAgent     String?
+  ipAddress     String?
+  deviceType    String?
+  browser       String?
+  os            String?
+  country       String?
+  city          String?
+  
+  // Security flags
+  isRevoked     Boolean  @default(false)
+  revokedAt     DateTime?
+  revokedReason String?
+  
+  // Session metadata
+  sessionType   SessionType @default(WEB)
+  fingerprint   String?
+  
+  // Soft delete support
+  deletedAt     DateTime?
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastUsedAt    DateTime @default(now())
+  
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Enhanced indexes for Session model
+  @@index([userId])                                  // Existing: User sessions
+  @@index([token])                                   // Existing: Session lookup
+  @@index([refreshToken])                            // Existing: Token refresh
+  @@index([expiresAt])                              // Existing: Session cleanup
+  @@index([deletedAt])                              // Existing: Soft delete filtering
+  @@index([userId, isRevoked])                       // NEW: Active user sessions
+  @@index([userId, sessionType])                     // NEW: Sessions by type
+  @@index([isRevoked, expiresAt])                   // NEW: Session cleanup queries
+  @@index([ipAddress])                              // NEW: Security monitoring
+  @@index([country, city])                          // NEW: Geographic analytics
+  @@index([deviceType, browser])                    // NEW: Device analytics
+  @@index([lastUsedAt])                             // NEW: Session activity tracking
+  @@index([fingerprint])                            // NEW: Security fingerprinting
+  @@index([revokedAt, revokedReason])               // NEW: Security audit trail
+  @@map("sessions")
+}
+
+model ApiKey {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  description   String?
+  key           String   @unique
+  keyPrefix     String
+  
+  // Permissions and scoping
+  permissions   String
+  scopes        String?
+  allowedIps    String?
+  allowedDomains String?
+  
+  // Rate limiting
+  rateLimit     Int?
+  rateLimitWindow String?
+  
+  // Usage tracking
+  totalRequests Int      @default(0)
+  lastUsedAt    DateTime?
+  lastUsedIp    String?
+  
+  // Expiration and status
+  expiresAt     DateTime?
+  isActive      Boolean  @default(true)
+  isRevoked     Boolean  @default(false)
+  revokedAt     DateTime?
+  revokedReason String?
+  
+  // Soft delete support
+  deletedAt     DateTime?
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Enhanced indexes for ApiKey model
+  @@index([userId])                                  // Existing: User API keys
+  @@index([key])                                     // Existing: API key lookup
+  @@index([keyPrefix])                               // Existing: Key prefix lookup
+  @@index([isActive])                                // Existing: Active keys
+  @@index([deletedAt])                               // Existing: Soft delete filtering
+  @@index([userId, isActive])                        // NEW: Active user API keys
+  @@index([isActive, isRevoked])                     // NEW: Valid API keys
+  @@index([expiresAt])                               // NEW: API key expiration cleanup
+  @@index([lastUsedAt])                              // NEW: API key usage tracking
+  @@index([totalRequests])                           // NEW: Usage analytics
+  @@index([rateLimit, rateLimitWindow])              // NEW: Rate limiting queries
+  @@index([lastUsedIp])                              // NEW: Security monitoring
+  @@index([createdAt])                               // NEW: API key creation analytics
+  @@map("api_keys")
+}
+
+// ========== Pipeline Management Models ==========
+
+model Pipeline {
+  id            String         @id @default(cuid())
+  userId        String
+  name          String
+  description   String?
+  status        PipelineStatus @default(DRAFT)
+  isPublic      Boolean        @default(false)
+  
+  // JSON fields for flexible schema
+  configuration String
+  metadata      String?
+  
+  // Versioning
+  version       Int            @default(1)
+  parentId      String?
+  
+  // Soft delete support
+  deletedAt     DateTime?
+  deletedBy     String?
+  
+  // Timestamps
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  publishedAt   DateTime?
+  archivedAt    DateTime?
+  
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions      PipelineVersion[]
+  runs          PipelineRun[]
+  templates     PipelineTemplate[]
+  
+  // Enhanced indexes for Pipeline model
+  @@index([userId])                                  // Existing: User pipelines
+  @@index([status])                                  // Existing: Pipeline status
+  @@index([createdAt])                               // Existing: Pipeline creation order
+  @@index([deletedAt])                               // Existing: Soft delete filtering
+  @@index([userId, status])                          // NEW: User pipeline status
+  @@index([userId, isPublic])                        // NEW: User public pipelines
+  @@index([status, isPublic])                        // NEW: Public pipeline discovery
+  @@index([isPublic, publishedAt])                   // NEW: Published public pipelines
+  @@index([name])                                    // NEW: Pipeline name search
+  @@index([parentId])                                // NEW: Pipeline versioning
+  @@index([updatedAt])                               // NEW: Recently updated pipelines
+  @@index([publishedAt])                             // NEW: Publishing analytics
+  @@index([archivedAt])                              // NEW: Archived pipelines
+  @@index([userId, createdAt])                       // NEW: User pipeline timeline
+  @@index([status, createdAt])                       // NEW: Pipeline status timeline
+  @@index([version])                                 // NEW: Version tracking
+  @@map("pipelines")
+}
+
+model PipelineVersion {
+  id            String    @id @default(cuid())
+  pipelineId    String
+  version       Int
+  configuration String
+  changelog     String?
+  createdBy     String
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  
+  // Relations
+  pipeline      Pipeline  @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  
+  // Enhanced indexes for PipelineVersion model
+  @@unique([pipelineId, version])                    // Existing: Unique version per pipeline
+  @@index([pipelineId])                              // Existing: Pipeline versions
+  @@index([createdBy])                               // NEW: Version author tracking
+  @@index([createdAt])                               // NEW: Version timeline
+  @@index([pipelineId, createdAt])                   // NEW: Pipeline version history
+  @@map("pipeline_versions")
+}
+
+model PipelineTemplate {
+  id            String   @id @default(cuid())
+  pipelineId    String?
+  name          String
+  description   String?
+  category      String
+  configuration String
+  parameters    String
+  isPublic      Boolean  @default(false)
+  usageCount    Int      @default(0)
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  pipeline      Pipeline? @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
+  
+  // Enhanced indexes for PipelineTemplate model
+  @@index([category])                                // Existing: Template categories
+  @@index([isPublic])                                // Existing: Public templates
+  @@index([category, isPublic])                      // NEW: Public templates by category
+  @@index([usageCount])                              // NEW: Popular templates
+  @@index([name])                                    // NEW: Template name search
+  @@index([createdAt])                               // NEW: Template creation timeline
+  @@index([updatedAt])                               // NEW: Recently updated templates
+  @@index([pipelineId])                              // NEW: Pipeline-based templates
+  @@index([category, usageCount])                    // NEW: Popular templates by category
+  @@index([isPublic, usageCount])                    // NEW: Popular public templates
+  @@map("pipeline_templates")
+}
+
+// ========== Execution Management Models ==========
+
+model PipelineRun {
+  id            String          @id @default(cuid())
+  pipelineId    String
+  userId        String
+  status        ExecutionStatus @default(QUEUED)
+  
+  // Execution details
+  inputs        String?
+  outputs       String?
+  configuration String
+  context       String?
+  
+  // Metrics and performance
+  duration      Int?
+  tokensUsed    Int?
+  estimatedCost Float?
+  actualCost    Float?
+  memoryUsage   Int?
+  cpuTime       Int?
+  
+  // Error handling and retry
+  error         String?
+  retryCount    Int             @default(0)
+  maxRetries    Int             @default(3)
+  retryStrategy String?
+  failureReason String?
+  
+  // Execution tracking
+  progress      Float           @default(0.0)
+  currentTaskId String?
+  totalTasks    Int?
+  completedTasks Int           @default(0)
+  
+  // Scheduling and priority
+  priority      Int             @default(0)
+  scheduledFor  DateTime?
+  timeoutAt     DateTime?
+  
+  // Execution environment
+  executorId    String?
+  environment   String?
+  version       String?
+  
+  // Timestamps
+  queuedAt      DateTime        @default(now())
+  startedAt     DateTime?
+  completedAt   DateTime?
+  lastUpdateAt  DateTime        @default(now()) @updatedAt
+  
+  // Relations
+  pipeline      Pipeline        @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks         TaskExecution[]
+  logs          ExecutionLog[]
+  artifacts     Artifact[]
+  fileReferences FileReference[]
+  
+  // Enhanced indexes for PipelineRun model
+  @@index([pipelineId])                              // Existing: Pipeline executions
+  @@index([userId])                                  // Existing: User executions
+  @@index([status])                                  // Existing: Execution status
+  @@index([queuedAt])                                // Existing: Queue order
+  @@index([startedAt])                               // Existing: Execution start time
+  @@index([priority])                                // Existing: Execution priority
+  @@index([executorId])                              // Existing: Executor workload
+  @@index([pipelineId, status])                      // NEW: Pipeline execution status
+  @@index([userId, status])                          // NEW: User execution status
+  @@index([status, queuedAt])                        // NEW: Queue processing order
+  @@index([status, priority])                        // NEW: Priority queue management
+  @@index([executorId, status])                      // NEW: Executor workload by status
+  @@index([completedAt])                             // NEW: Completion tracking
+  @@index([duration])                                // NEW: Performance analytics
+  @@index([actualCost])                              // NEW: Cost analytics
+  @@index([tokensUsed])                              // NEW: Token usage analytics
+  @@index([failureReason])                           // NEW: Error analytics
+  @@index([retryCount])                              // NEW: Retry analytics
+  @@index([scheduledFor])                            // NEW: Scheduled execution management
+  @@index([timeoutAt])                               // NEW: Timeout management
+  @@index([version])                                 // NEW: Pipeline version tracking
+  @@index([userId, queuedAt])                        // NEW: User execution timeline
+  @@index([pipelineId, queuedAt])                    // NEW: Pipeline execution timeline
+  @@index([status, scheduledFor])                    // NEW: Scheduled execution processing
+  @@index([executorId, queuedAt])                    // NEW: Executor queue management
+  @@index([progress])                                // NEW: Execution progress tracking
+  @@index([currentTaskId])                           // NEW: Current task monitoring
+  @@index([totalTasks, completedTasks])              // NEW: Task completion tracking
+  @@map("pipeline_runs")
+}
+
+model TaskExecution {
+  id            String          @id @default(cuid())
+  runId         String
+  nodeId        String
+  nodeName      String
+  nodeType      String
+  status        ExecutionStatus @default(PENDING)
+  
+  // Execution details
+  inputs        String?
+  outputs       String?
+  configuration String
+  
+  // Execution order and dependencies
+  executionOrder Int
+  dependencies  String?
+  dependents    String?
+  
+  // Metrics and performance
+  duration      Int?
+  tokensUsed    Int?
+  cost          Float?
+  memoryUsage   Int?
+  cpuTime       Int?
+  
+  // Error handling and retry
+  error         String?
+  retryCount    Int             @default(0)
+  maxRetries    Int             @default(3)
+  retryDelay    Int?
+  failureReason String?
+  
+  // Progress and state
+  progress      Float           @default(0.0)
+  state         String?
+  checkpoint    String?
+  
+  // Execution environment
+  executorId    String?
+  workerId      String?
+  
+  // Timing and scheduling
+  queuedAt      DateTime        @default(now())
+  startedAt     DateTime?
+  completedAt   DateTime?
+  timeoutAt     DateTime?
+  lastUpdateAt  DateTime        @default(now()) @updatedAt
+  
+  // Cache and optimization
+  cacheKey      String?
+  cached        Boolean         @default(false)
+  
+  // Relations
+  run           PipelineRun     @relation(fields: [runId], references: [id], onDelete: Cascade)
+  logs          ExecutionLog[]
+  artifacts     Artifact[]
+  fileReferences FileReference[]
+  
+  // Enhanced indexes for TaskExecution model
+  @@index([runId])                                   // Existing: Run tasks
+  @@index([status])                                  // Existing: Task status
+  @@index([nodeId])                                  // Existing: Node execution tracking
+  @@index([executionOrder])                          // Existing: Task execution order
+  @@index([queuedAt])                                // Existing: Task queue order
+  @@index([executorId])                              // Existing: Executor workload
+  @@index([cacheKey])                                // Existing: Cache lookup
+  @@index([runId, status])                           // NEW: Run task status
+  @@index([runId, executionOrder])                   // NEW: Run task order
+  @@index([nodeId, status])                          // NEW: Node execution status
+  @@index([nodeType])                                // NEW: Task type analytics
+  @@index([status, queuedAt])                        // NEW: Task queue processing
+  @@index([executorId, status])                      // NEW: Executor task status
+  @@index([workerId])                                // NEW: Worker task tracking
+  @@index([cached])                                  // NEW: Cache hit analytics
+  @@index([duration])                                // NEW: Task performance analytics
+  @@index([cost])                                    // NEW: Task cost analytics
+  @@index([tokensUsed])                              // NEW: Task token usage
+  @@index([failureReason])                           // NEW: Task error analytics
+  @@index([retryCount])                              // NEW: Task retry analytics
+  @@index([startedAt])                               // NEW: Task start time tracking
+  @@index([completedAt])                             // NEW: Task completion tracking
+  @@index([timeoutAt])                               // NEW: Task timeout management
+  @@index([progress])                                // NEW: Task progress tracking
+  @@index([runId, nodeId])                           // NEW: Unique task identification
+  @@index([executorId, queuedAt])                    // NEW: Executor queue management
+  @@index([status, executionOrder])                  // NEW: Task execution pipeline
+  @@map("task_executions")
+}
+
+model ExecutionLog {
+  id            String         @id @default(cuid())
+  runId         String
+  taskId        String?
+  level         LogLevel
+  message       String
+  metadata      String?
+  
+  // Structured logging
+  category      String?
+  source        String?
+  correlationId String?
+  
+  // Streaming and real-time
+  sequenceNumber Int           @default(1)
+  streamId      String?
+  
+  // Error context
+  errorCode     String?
+  stackTrace    String?
+  
+  // Performance tracking
+  duration      Int?
+  memorySnapshot Int?
+  
+  // Timestamps
+  timestamp     DateTime       @default(now())
+  
+  // Relations
+  run           PipelineRun    @relation(fields: [runId], references: [id], onDelete: Cascade)
+  task          TaskExecution? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  // Enhanced indexes for ExecutionLog model
+  @@index([runId])                                   // Existing: Run logs
+  @@index([taskId])                                  // Existing: Task logs
+  @@index([timestamp])                               // Existing: Log chronology
+  @@index([level])                                   // Existing: Log level filtering
+  @@index([category])                                // Existing: Log categories
+  @@index([sequenceNumber])                          // Existing: Log sequence
+  @@index([correlationId])                           // Existing: Log correlation
+  @@index([runId, timestamp])                        // NEW: Run log chronology
+  @@index([taskId, timestamp])                       // NEW: Task log chronology
+  @@index([level, timestamp])                        // NEW: Error log tracking
+  @@index([category, timestamp])                     // NEW: Category log tracking
+  @@index([source])                                  // NEW: Log source tracking
+  @@index([errorCode])                               // NEW: Error code analytics
+  @@index([streamId])                                // NEW: Log stream tracking
+  @@index([correlationId, timestamp])                // NEW: Correlation tracking
+  @@index([runId, level])                            // NEW: Run error tracking
+  @@index([taskId, level])                           // NEW: Task error tracking
+  @@index([duration])                                // NEW: Performance log analytics
+  @@index([memorySnapshot])                          // NEW: Memory usage tracking
+  @@index([runId, sequenceNumber])                   // NEW: Run log sequence
+  @@index([taskId, sequenceNumber])                  // NEW: Task log sequence
+  @@index([category, level])                         // NEW: Category error tracking
+  @@index([source, level])                           // NEW: Source error tracking
+  @@map("execution_logs")
+}
+
+// ========== File Management Models ==========
+
+model FileUpload {
+  id            String      @id @default(cuid())
+  userId        String
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int
+  
+  // Storage configuration
+  storageProvider String    @default("local")
+  storageKey    String      @unique
+  s3Bucket      String?
+  s3Key         String?
+  s3Region      String?
+  s3Etag        String?
+  storageClass  String?
+  
+  // File integrity and metadata
+  checksum      String?
+  checksumType  String?
+  encoding      String?
+  contentType   String?
+  
+  // Enhanced metadata
+  metadata      String?
+  dimensions    String?
+  duration      Float?
+  quality       String?
+  compression   String?
+  
+  // Processing and status
+  status        FileStatus  @default(PENDING)
+  processingError String?
+  processingStage String?
+  processingProgress Float? @default(0.0)
+  
+  // Access control and security
+  isPublic      Boolean     @default(false)
+  accessLevel   String?
+  encryptionKey String?
+  isEncrypted   Boolean     @default(false)
+  
+  // Lifecycle management
+  uploadedAt    DateTime    @default(now())
+  expiresAt     DateTime?
+  lastAccessedAt DateTime?
+  downloadCount Int         @default(0)
+  
+  // Virus scanning and security
+  virusScanned  Boolean     @default(false)
+  virusScanResult String?
+  virusScanAt   DateTime?
+  
+  // Soft delete support
+  deletedAt     DateTime?
+  deletedBy     String?
+  
+  // Relations
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artifacts     Artifact[]
+  thumbnails    Thumbnail[]
+  references    FileReference[]
+  
+  // Enhanced indexes for FileUpload model
+  @@index([userId])                                  // Existing: User files
+  @@index([storageKey])                              // Existing: Storage lookup
+  @@index([s3Bucket, s3Key])                         // Existing: S3 object lookup
+  @@index([uploadedAt])                              // Existing: Upload timeline
+  @@index([status])                                  // Existing: File status
+  @@index([mimeType])                                // Existing: File type filtering
+  @@index([checksum])                                // Existing: File integrity
+  @@index([deletedAt])                               // Existing: Soft delete filtering
+  @@index([isPublic])                                // Existing: Public file access
+  @@index([expiresAt])                               // Existing: File expiration
+  @@index([userId, status])                          // NEW: User file status
+  @@index([userId, mimeType])                        // NEW: User file types
+  @@index([userId, uploadedAt])                      // NEW: User upload timeline
+  @@index([storageProvider])                         // NEW: Storage analytics
+  @@index([size])                                    // NEW: File size analytics
+  @@index([isPublic, status])                        // NEW: Public file discovery
+  @@index([filename])                                // NEW: File name search
+  @@index([originalName])                            // NEW: Original name search
+  @@index([virusScanned, virusScanResult])           // NEW: Security scanning
+  @@index([isEncrypted])                             // NEW: Encryption analytics
+  @@index([downloadCount])                           // NEW: Popular files
+  @@index([lastAccessedAt])                          // NEW: File access tracking
+  @@index([processingStage])                         // NEW: Processing pipeline
+  @@index([quality])                                 // NEW: Quality filtering
+  @@index([compression])                             // NEW: Compression analytics
+  @@index([storageClass])                            // NEW: Storage class analytics
+  @@index([contentType])                             // NEW: Content type filtering
+  @@index([userId, isPublic])                        // NEW: User public files
+  @@index([status, uploadedAt])                      // NEW: Status timeline
+  @@index([mimeType, size])                          // NEW: File type size analytics
+  @@index([s3Region])                                // NEW: Regional storage analytics
+  @@map("file_uploads")
+}
+
+model Artifact {
+  id            String       @id @default(cuid())
+  runId         String
+  taskId        String?
+  fileId        String?
+  type          ArtifactType
+  name          String
+  description   String?
+  
+  // Versioning
+  version       Int          @default(1)
+  parentId      String?
+  isLatest      Boolean      @default(true)
+  versionNotes  String?
+  
+  // Storage information
+  storageKey    String       @unique
+  size          Int
+  mimeType      String?
+  checksum      String?
+  checksumType  String?
+  
+  // S3 specific fields
+  s3Bucket      String?
+  s3Key         String?
+  s3Region      String?
+  s3Etag        String?
+  s3VersionId   String?
+  
+  // Content metadata
+  metadata      String?
+  dimensions    String?
+  duration      Float?
+  quality       String?
+  format        String?
+  
+  // Classification and organization
+  category      String?
+  tags          String?
+  importance    String?
+  
+  // Lifecycle and retention
+  status        ArtifactStatus @default(ACTIVE)
+  expiresAt     DateTime?
+  retentionDays Int?
+  
+  // Access control
+  isPublic      Boolean      @default(false)
+  accessLevel   String?
+  
+  // Usage tracking
+  downloadCount Int          @default(0)
+  lastAccessedAt DateTime?
+  
+  // Pipeline context
+  nodeId        String?
+  nodeName      String?
+  nodeType      String?
+  pipelineVersion String?
+  
+  // Processing information
+  processingTime Int?
+  processingCost Float?
+  
+  // Soft delete support
+  deletedAt     DateTime?
+  deletedBy     String?
+  
+  // Timestamps
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  // Relations
+  run           PipelineRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  task          TaskExecution? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  file          FileUpload?  @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  parent        Artifact?    @relation("ArtifactVersions", fields: [parentId], references: [id], onDelete: SetNull)
+  versions      Artifact[]   @relation("ArtifactVersions")
+  references    FileReference[]
+  
+  // Enhanced indexes for Artifact model
+  @@index([runId])                                   // Existing: Run artifacts
+  @@index([taskId])                                  // Existing: Task artifacts
+  @@index([type])                                    // Existing: Artifact type
+  @@index([version])                                 // Existing: Version tracking
+  @@index([parentId])                                // Existing: Version hierarchy
+  @@index([isLatest])                                // Existing: Latest versions
+  @@index([status])                                  // Existing: Artifact status
+  @@index([category])                                // Existing: Artifact categories
+  @@index([nodeId])                                  // Existing: Node artifacts
+  @@index([createdAt])                               // Existing: Creation timeline
+  @@index([checksum])                                // Existing: Integrity verification
+  @@index([s3Bucket, s3Key])                         // Existing: S3 object lookup
+  @@index([deletedAt])                               // Existing: Soft delete filtering
+  @@index([expiresAt])                               // Existing: Expiration management
+  @@index([runId, type])                             // NEW: Run artifact types
+  @@index([taskId, type])                            // NEW: Task artifact types
+  @@index([type, status])                            // NEW: Artifact type status
+  @@index([runId, category])                         // NEW: Run artifact categories
+  @@index([nodeId, type])                            // NEW: Node artifact types
+  @@index([importance])                              // NEW: Artifact importance
+  @@index([size])                                    // NEW: Artifact size analytics
+  @@index([downloadCount])                           // NEW: Popular artifacts
+  @@index([lastAccessedAt])                          // NEW: Artifact access tracking
+  @@index([processingTime])                          // NEW: Processing time analytics
+  @@index([processingCost])                          // NEW: Processing cost analytics
+  @@index([quality])                                 // NEW: Quality filtering
+  @@index([format])                                  // NEW: Format filtering
+  @@index([retentionDays])                           // NEW: Retention policy management
+  @@index([isPublic])                                // NEW: Public artifact access
+  @@index([pipelineVersion])                         // NEW: Pipeline version tracking
+  @@index([s3Region])                                // NEW: Regional storage analytics
+  @@index([fileId])                                  // NEW: File-artifact relationship
+  @@index([runId, isLatest])                         // NEW: Run latest artifacts
+  @@index([parentId, version])                       // NEW: Version chain tracking
+  @@index([status, expiresAt])                       // NEW: Expiration processing
+  @@index([category, importance])                    // NEW: Category importance
+  @@index([nodeType, type])                          // NEW: Node type artifact types
+  @@unique([runId, name, version])                   // Existing: Unique artifact per run
+  @@map("artifacts")
+}
+
+model Thumbnail {
+  id            String      @id @default(cuid())
+  fileId        String
+  size          String
+  storageKey    String      @unique
+  
+  // Timestamps
+  createdAt     DateTime    @default(now())
+  
+  // Relations
+  file          FileUpload  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  
+  // Enhanced indexes for Thumbnail model
+  @@index([fileId])                                  // Existing: File thumbnails
+  @@index([size])                                    // NEW: Thumbnail size filtering
+  @@index([createdAt])                               // NEW: Thumbnail creation timeline
+  @@index([fileId, size])                            // NEW: File-specific thumbnail sizes
+  @@map("thumbnails")
+}
+
+model FileReference {
+  id            String        @id @default(cuid())
+  fileId        String?
+  artifactId    String?
+  
+  // Execution context
+  runId         String
+  taskId        String?
+  
+  // Reference details
+  referenceType FileReferenceType
+  purpose       String?
+  contextPath   String?
+  
+  // Usage metadata
+  metadata      String?
+  usage         String?
+  
+  // Processing information
+  accessedAt    DateTime?
+  modifiedAt    DateTime?
+  processingTime Int?
+  
+  // Validation and integrity
+  checksumAtUse String?
+  sizeAtUse     Int?
+  
+  // Lifecycle
+  isActive      Boolean       @default(true)
+  notes         String?
+  
+  // Timestamps
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  // Relations
+  file          FileUpload?   @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  artifact      Artifact?     @relation(fields: [artifactId], references: [id], onDelete: SetNull)
+  run           PipelineRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
+  task          TaskExecution? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  
+  // Enhanced indexes for FileReference model
+  @@index([fileId])                                  // Existing: File references
+  @@index([artifactId])                              // Existing: Artifact references
+  @@index([runId])                                   // Existing: Run file references
+  @@index([taskId])                                  // Existing: Task file references
+  @@index([referenceType])                           // Existing: Reference type filtering
+  @@index([purpose])                                 // Existing: Reference purpose
+  @@index([accessedAt])                              // Existing: Access tracking
+  @@index([isActive])                                // Existing: Active references
+  @@index([runId, referenceType])                    // NEW: Run reference types
+  @@index([taskId, referenceType])                   // NEW: Task reference types
+  @@index([fileId, referenceType])                   // NEW: File reference types
+  @@index([artifactId, referenceType])               // NEW: Artifact reference types
+  @@index([runId, purpose])                          // NEW: Run reference purposes
+  @@index([taskId, purpose])                         // NEW: Task reference purposes
+  @@index([isActive, referenceType])                 // NEW: Active reference types
+  @@index([createdAt])                               // NEW: Reference creation timeline
+  @@index([modifiedAt])                              // NEW: Reference modification tracking
+  @@index([processingTime])                          // NEW: Processing time analytics
+  @@index([contextPath])                             // NEW: Context path filtering
+  @@index([checksumAtUse])                           // NEW: Integrity verification
+  @@index([sizeAtUse])                               // NEW: Size verification
+  @@index([runId, isActive])                         // NEW: Run active references
+  @@index([taskId, isActive])                        // NEW: Task active references
+  @@map("file_references")
+}
+
+// ========== Provider Credentials ==========
+
+model ProviderCredential {
+  id            String      @id @default(cuid())
+  name          String
+  provider      String
+  credentials   String
+  isActive      Boolean     @default(true)
+  isDefault     Boolean     @default(false)
+  
+  // Usage tracking
+  lastUsedAt    DateTime?
+  usageCount    Int         @default(0)
+  
+  // Soft delete support
+  deletedAt     DateTime?
+  
+  // Timestamps
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // Enhanced indexes for ProviderCredential model
+  @@unique([provider, isDefault])                    // Existing: Unique default per provider
+  @@index([provider])                                // Existing: Provider filtering
+  @@index([deletedAt])                               // Existing: Soft delete filtering
+  @@index([isActive])                                // NEW: Active credentials
+  @@index([provider, isActive])                      // NEW: Active provider credentials
+  @@index([isDefault])                               // NEW: Default credentials
+  @@index([lastUsedAt])                              // NEW: Usage tracking
+  @@index([usageCount])                              // NEW: Usage analytics
+  @@index([createdAt])                               // NEW: Creation timeline
+  @@index([name])                                    // NEW: Credential name search
+  @@map("provider_credentials")
+}
+
+// ========== Enums ==========
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum PipelineStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ExecutionStatus {
+  QUEUED
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+}
+
+enum FileStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum ArtifactType {
+  IMAGE
+  VIDEO
+  AUDIO
+  TEXT
+  JSON
+  CSV
+  XML
+  PDF
+  ARCHIVE
+  BINARY
+  OTHER
+}
+
+enum ArtifactStatus {
+  ACTIVE
+  ARCHIVED
+  EXPIRED
+  DELETED
+  CORRUPTED
+}
+
+enum FileReferenceType {
+  INPUT
+  OUTPUT
+  INTERMEDIATE
+  CONFIG
+  TEMPLATE
+  CACHE
+  BACKUP
+  DEBUG
+}
+
+enum SessionType {
+  WEB
+  MOBILE
+  API
+  CLI
+  INTEGRATION
+}
