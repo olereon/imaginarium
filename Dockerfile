@@ -2,7 +2,7 @@
 # Optimized for production with development support
 
 # Base stage with common dependencies
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 WORKDIR /app
 
 # Install system dependencies for native modules
@@ -43,7 +43,7 @@ COPY . .
 RUN npm run build
 
 # Production server stage
-FROM node:20-alpine AS server-prod
+FROM node:24-alpine AS server-prod
 
 WORKDIR /app
 
