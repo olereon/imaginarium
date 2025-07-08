@@ -16,30 +16,33 @@
     "clean": "rimraf dist .turbo node_modules/.cache"
   },
   "dependencies": {
+    "@hookform/resolvers": "^3.3.2",
+    "@imaginarium/shared": "*",
+    "@imaginarium/ui": "*",
+    "antd": "^5.12.5",
+    "axios": "^1.6.2",
+    "lucide-react": "^0.300.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.1",
-    "antd": "^5.12.5",
-    "zustand": "^4.4.7",
-    "axios": "^1.6.2",
-    "react-hook-form": "^7.48.2",
-    "zod": "^3.22.4",
-    "@hookform/resolvers": "^3.3.2",
-    "socket.io-client": "^4.7.4",
     "react-flow-renderer": "^10.3.17",
-    "lucide-react": "^0.300.0",
-    "@imaginarium/shared": "*",
-    "@imaginarium/ui": "*"
+    "react-hook-form": "^7.48.2",
+    "react-router-dom": "^6.20.1",
+    "socket.io-client": "^4.7.4",
+    "zod": "^3.22.4",
+    "zustand": "^4.4.7"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.5.1",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
-    "vite": "^5.0.8",
-    "jsdom": "^23.0.1",
     "@vitest/ui": "^1.1.0",
-    "@testing-library/react": "^14.1.2",
-    "@testing-library/jest-dom": "^6.1.5",
-    "@testing-library/user-event": "^14.5.1"
+    "autoprefixer": "^10.4.21",
+    "jsdom": "^23.0.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.11",
+    "vite": "^5.0.8"
   }
 }
