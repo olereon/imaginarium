@@ -61,6 +61,19 @@ export class PipelineEngine {
       }
     }
 
+    // Check for orphaned nodes (nodes not connected to anything)
+    const connectedNodes = new Set<string>();
+    for (const connection of pipeline.connections) {
+      connectedNodes.add(connection.source);
+      connectedNodes.add(connection.target);
+    }
+
+    for (const node of pipeline.nodes) {
+      if (!connectedNodes.has(node.id)) {
+        errors.push(`Node ${node.id} is not connected to any other nodes`);
+      }
+    }
+
     return {
       valid: errors.length === 0,
       errors,
