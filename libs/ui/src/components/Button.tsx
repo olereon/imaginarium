@@ -12,9 +12,8 @@ export const Button: React.FC<ButtonProps> = ({
   type,
   ...props
 }) => {
-  const buttonType = variant === 'primary' ? 'primary' : 
-                     variant === 'secondary' ? 'default' : 
-                     'text';
+  const buttonType =
+    variant === 'primary' ? 'primary' : variant === 'secondary' ? 'default' : 'text';
 
   return (
     <AntButton

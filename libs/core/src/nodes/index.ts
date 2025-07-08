@@ -37,7 +37,7 @@ export abstract class BaseNode {
   ) {}
 
   abstract execute(inputs: Record<string, unknown>): Promise<Record<string, unknown>>;
-  
+
   abstract validate(): { valid: boolean; errors: string[] };
 }
 
@@ -60,7 +60,7 @@ export class TextInputNode extends BaseNode {
 export class ImageGeneratorNode extends BaseNode {
   async execute(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     // Mock implementation
-    const prompt = inputs['prompt'] as string ?? '';
+    const prompt = (inputs['prompt'] as string) ?? '';
     return {
       image: `generated-image-for-${prompt}`,
     };
@@ -91,7 +91,7 @@ export class NodeRegistry {
   createNode(type: string, id: string, config: Record<string, unknown>): BaseNode | null {
     const NodeClass = this.nodes.get(type);
     if (!NodeClass) return null;
-    
+
     // We need to cast here because TypeScript doesn't know these are concrete classes
     return new (NodeClass as any)(id, type, config) as BaseNode;
   }

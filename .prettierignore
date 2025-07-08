@@ -1,18 +1,45 @@
-node_modules
-dist
-coverage
-.turbo
-.next
-.nuxt
-.vscode
-.idea
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.turbo/
+.next/
+.nuxt/
+
+# Generated files
+coverage/
 *.log
 *.tsbuildinfo
+*.tgz
+*.tar.gz
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Package manager files
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+
+# Environment files
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Configuration files that should maintain their format
+.prettierrc
+.eslintrc.cjs
+tsconfig*.json
+
+# Markdown files (preserve formatting)
+*.md
+CHANGELOG.md

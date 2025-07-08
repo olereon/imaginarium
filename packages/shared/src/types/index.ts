@@ -36,12 +36,7 @@ export interface Execution {
   outputs: ExecutionOutput[];
 }
 
-export type ExecutionStatus = 
-  | 'pending'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'cancelled';
+export type ExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 export interface ExecutionOutput {
   nodeId: string;

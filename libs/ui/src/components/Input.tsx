@@ -6,19 +6,11 @@ export interface InputProps extends Omit<AntInputProps, 'variant'> {
   customVariant?: 'default' | 'filled' | 'borderless';
 }
 
-export const Input: React.FC<InputProps> = ({
-  customVariant = 'default',
-  className,
-  ...props
-}) => {
-  const antVariant = customVariant === 'default' ? 'outlined' : 
-                     customVariant as 'filled' | 'borderless';
+export const Input: React.FC<InputProps> = ({ customVariant = 'default', className, ...props }) => {
+  const antVariant =
+    customVariant === 'default' ? 'outlined' : (customVariant as 'filled' | 'borderless');
 
   return (
-    <AntInput
-      variant={antVariant}
-      className={clsx('imaginarium-input', className)}
-      {...props}
-    />
+    <AntInput variant={antVariant} className={clsx('imaginarium-input', className)} {...props} />
   );
 };

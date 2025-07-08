@@ -20,18 +20,9 @@ export function validateRequired<T>(
   }
 }
 
-export function validateRange(
-  value: number,
-  min: number,
-  max: number,
-  fieldName: string
-): void {
+export function validateRange(value: number, min: number, max: number, fieldName: string): void {
   if (value < min || value > max) {
-    throw new ValidationError(
-      `${fieldName} must be between ${min} and ${max}`,
-      fieldName,
-      value
-    );
+    throw new ValidationError(`${fieldName} must be between ${min} and ${max}`, fieldName, value);
   }
 }
 
