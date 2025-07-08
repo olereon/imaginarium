@@ -1,0 +1,106 @@
+# Label PRs based on file changes
+
+# Package-specific labels
+'shared':
+  - changed-files:
+      - any-glob-to-any-file: 'packages/shared/**'
+
+'core':
+  - changed-files:
+      - any-glob-to-any-file: 'libs/core/**'
+
+'ui':
+  - changed-files:
+      - any-glob-to-any-file: 'libs/ui/**'
+
+'server':
+  - changed-files:
+      - any-glob-to-any-file: 'apps/server/**'
+
+'client':
+  - changed-files:
+      - any-glob-to-any-file: 'apps/client/**'
+
+# Type-specific labels
+'backend':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'apps/server/**'
+          - 'libs/core/**'
+
+'frontend':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'apps/client/**'
+          - 'libs/ui/**'
+
+'docker':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'Dockerfile'
+          - 'docker-compose*.yml'
+          - 'docker/**'
+          - '.dockerignore'
+
+'ci':
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+          - '.releaserc.json'
+
+'dependencies':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'package*.json'
+          - '**/package*.json'
+
+'documentation':
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**'
+
+'tests':
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.test.ts'
+          - '**/*.test.tsx'
+          - '**/*.spec.ts'
+          - '**/*.spec.tsx'
+          - '**/vitest.config.ts'
+
+'config':
+  - changed-files:
+      - any-glob-to-any-file:
+          - '*.config.js'
+          - '*.config.ts'
+          - '*.config.json'
+          - 'tsconfig*.json'
+          - '.eslintrc*'
+          - '.prettierrc*'
+
+# Size labels based on number of changes
+'size/XS':
+  - changed-files:
+      - count-type: changed
+        count: 1..10
+
+'size/S':
+  - changed-files:
+      - count-type: changed
+        count: 11..49
+
+'size/M':
+  - changed-files:
+      - count-type: changed
+        count: 50..199
+
+'size/L':
+  - changed-files:
+      - count-type: changed
+        count: 200..499
+
+'size/XL':
+  - changed-files:
+      - count-type: changed
+        count: 500..

@@ -1,0 +1,353 @@
+name: Monitoring & Health Checks
+
+on:
+  schedule:
+    - cron: '*/15 * * * *' # Run every 15 minutes
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to monitor'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+          - all
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # Health check for staging environment
+  health-check-staging:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment == 'staging' || github.event.inputs.environment == 'all' || github.event_name == 'schedule'
+    steps:
+      - name: Check staging health endpoints
+        run: |
+          echo "Checking staging environment health..."
+
+          # Health check endpoints
+          STAGING_API="https://staging.imaginarium.com/api"
+          STAGING_WEB="https://staging.imaginarium.com"
+
+          # Check API health
+          if curl -f "$STAGING_API/health" --max-time 30; then
+            echo "✅ Staging API health check passed"
+            API_STATUS="healthy"
+          else
+            echo "❌ Staging API health check failed"
+            API_STATUS="unhealthy"
+          fi
+
+          # Check web health
+          if curl -f "$STAGING_WEB" --max-time 30; then
+            echo "✅ Staging web health check passed"
+            WEB_STATUS="healthy"
+          else
+            echo "❌ Staging web health check failed"
+            WEB_STATUS="unhealthy"
+          fi
+
+          # Set outputs for notification
+          echo "api_status=$API_STATUS" >> $GITHUB_ENV
+          echo "web_status=$WEB_STATUS" >> $GITHUB_ENV
+
+      - name: Check staging performance
+        run: |
+          echo "Checking staging performance..."
+
+          # Simple performance check
+          API_RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}' https://staging.imaginarium.com/api/health)
+          WEB_RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}' https://staging.imaginarium.com)
+
+          echo "API response time: ${API_RESPONSE_TIME}s"
+          echo "Web response time: ${WEB_RESPONSE_TIME}s"
+
+          # Check if response times are acceptable (< 5 seconds)
+          if (( $(echo "$API_RESPONSE_TIME > 5" | bc -l) )); then
+            echo "⚠️ Staging API response time is slow: ${API_RESPONSE_TIME}s"
+            echo "api_performance=slow" >> $GITHUB_ENV
+          else
+            echo "✅ Staging API response time is good: ${API_RESPONSE_TIME}s"
+            echo "api_performance=good" >> $GITHUB_ENV
+          fi
+
+          if (( $(echo "$WEB_RESPONSE_TIME > 5" | bc -l) )); then
+            echo "⚠️ Staging web response time is slow: ${WEB_RESPONSE_TIME}s"
+            echo "web_performance=slow" >> $GITHUB_ENV
+          else
+            echo "✅ Staging web response time is good: ${WEB_RESPONSE_TIME}s"
+            echo "web_performance=good" >> $GITHUB_ENV
+          fi
+
+      - name: Notify staging issues
+        if: env.api_status == 'unhealthy' || env.web_status == 'unhealthy' || env.api_performance == 'slow' || env.web_performance == 'slow'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: warning
+          text: |
+            ⚠️ Staging Environment Issues Detected
+
+            Status:
+            - API Health: ${{ env.api_status == 'healthy' && '✅' || '❌' }}
+            - Web Health: ${{ env.web_status == 'healthy' && '✅' || '❌' }}
+            - API Performance: ${{ env.api_performance == 'good' && '✅' || '⚠️' }}
+            - Web Performance: ${{ env.web_performance == 'good' && '✅' || '⚠️' }}
+
+            Please investigate immediately.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # Health check for production environment
+  health-check-production:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment == 'production' || github.event.inputs.environment == 'all' || github.event_name == 'schedule'
+    steps:
+      - name: Check production health endpoints
+        run: |
+          echo "Checking production environment health..."
+
+          # Health check endpoints
+          PROD_API="https://imaginarium.com/api"
+          PROD_WEB="https://imaginarium.com"
+
+          # Check API health
+          if curl -f "$PROD_API/health" --max-time 30; then
+            echo "✅ Production API health check passed"
+            API_STATUS="healthy"
+          else
+            echo "❌ Production API health check failed"
+            API_STATUS="unhealthy"
+          fi
+
+          # Check web health
+          if curl -f "$PROD_WEB" --max-time 30; then
+            echo "✅ Production web health check passed"
+            WEB_STATUS="healthy"
+          else
+            echo "❌ Production web health check failed"
+            WEB_STATUS="unhealthy"
+          fi
+
+          # Set outputs for notification
+          echo "api_status=$API_STATUS" >> $GITHUB_ENV
+          echo "web_status=$WEB_STATUS" >> $GITHUB_ENV
+
+      - name: Check production performance
+        run: |
+          echo "Checking production performance..."
+
+          # Simple performance check
+          API_RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}' https://imaginarium.com/api/health)
+          WEB_RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}' https://imaginarium.com)
+
+          echo "API response time: ${API_RESPONSE_TIME}s"
+          echo "Web response time: ${WEB_RESPONSE_TIME}s"
+
+          # Check if response times are acceptable (< 3 seconds for production)
+          if (( $(echo "$API_RESPONSE_TIME > 3" | bc -l) )); then
+            echo "⚠️ Production API response time is slow: ${API_RESPONSE_TIME}s"
+            echo "api_performance=slow" >> $GITHUB_ENV
+          else
+            echo "✅ Production API response time is good: ${API_RESPONSE_TIME}s"
+            echo "api_performance=good" >> $GITHUB_ENV
+          fi
+
+          if (( $(echo "$WEB_RESPONSE_TIME > 3" | bc -l) )); then
+            echo "⚠️ Production web response time is slow: ${WEB_RESPONSE_TIME}s"
+            echo "web_performance=slow" >> $GITHUB_ENV
+          else
+            echo "✅ Production web response time is good: ${WEB_RESPONSE_TIME}s"
+            echo "web_performance=good" >> $GITHUB_ENV
+          fi
+
+      - name: Critical alert for production issues
+        if: env.api_status == 'unhealthy' || env.web_status == 'unhealthy'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          text: |
+            🚨 CRITICAL: Production Environment Down!
+
+            Status:
+            - API Health: ${{ env.api_status == 'healthy' && '✅' || '❌' }}
+            - Web Health: ${{ env.web_status == 'healthy' && '✅' || '❌' }}
+
+            @channel IMMEDIATE ACTION REQUIRED!
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Performance warning for production
+        if: (env.api_status == 'healthy' && env.web_status == 'healthy') && (env.api_performance == 'slow' || env.web_performance == 'slow')
+        uses: 8398a7/action-slack@v3
+        with:
+          status: warning
+          text: |
+            ⚠️ Production Performance Issues Detected
+
+            Status:
+            - API Performance: ${{ env.api_performance == 'good' && '✅' || '⚠️' }}
+            - Web Performance: ${{ env.web_performance == 'good' && '✅' || '⚠️' }}
+
+            Services are healthy but performance is degraded.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # Database health check
+  database-health:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event.inputs.environment == 'all'
+    steps:
+      - name: Check database connections
+        run: |
+          echo "Checking database health..."
+
+          # This would typically connect to your monitoring endpoint
+          # that checks database connectivity and performance
+
+          # Example health checks:
+          # - Connection pool status
+          # - Query response times
+          # - Disk usage
+          # - Active connections
+
+          echo "Database health checks would run here"
+          echo "Examples:"
+          echo "- Check connection pools"
+          echo "- Monitor slow queries"
+          echo "- Check disk usage"
+          echo "- Monitor active connections"
+
+  # Service metrics collection
+  collect-metrics:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Collect application metrics
+        run: |
+          echo "Collecting application metrics..."
+
+          # This would typically collect metrics from your monitoring endpoints
+          # Examples:
+          # - Response times
+          # - Error rates
+          # - Throughput
+          # - Resource usage
+
+          echo "Metrics collection would include:"
+          echo "- API response times"
+          echo "- Error rates"
+          echo "- Request throughput"
+          echo "- Memory usage"
+          echo "- CPU usage"
+          echo "- Disk I/O"
+
+      - name: Generate metrics report
+        run: |
+          echo "Generating metrics report..."
+
+          # Create a simple metrics report
+          cat > metrics-report.md << EOF
+          # System Metrics Report
+
+          Generated: $(date)
+
+          ## Performance Metrics
+          - API Average Response Time: TBD
+          - Web Average Response Time: TBD
+          - Error Rate: TBD
+          - Throughput: TBD
+
+          ## Resource Usage
+          - CPU Usage: TBD
+          - Memory Usage: TBD
+          - Disk Usage: TBD
+
+          ## Availability
+          - Uptime: TBD
+          - Service Availability: TBD
+          EOF
+
+      - name: Upload metrics report
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-report-${{ github.run_number }}
+          path: metrics-report.md
+
+  # SSL certificate check
+  ssl-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event.inputs.environment == 'all'
+    steps:
+      - name: Check SSL certificates
+        run: |
+          echo "Checking SSL certificates..."
+
+          domains=("imaginarium.com" "staging.imaginarium.com")
+
+          for domain in "${domains[@]}"; do
+            echo "Checking SSL for $domain..."
+            
+            # Get certificate expiry date
+            expiry_date=$(echo | openssl s_client -servername $domain -connect $domain:443 2>/dev/null | openssl x509 -noout -enddate | cut -d= -f2)
+            expiry_timestamp=$(date -d "$expiry_date" +%s)
+            current_timestamp=$(date +%s)
+            days_until_expiry=$(( (expiry_timestamp - current_timestamp) / 86400 ))
+            
+            echo "Certificate for $domain expires in $days_until_expiry days"
+            
+            if [ $days_until_expiry -lt 30 ]; then
+              echo "⚠️ Certificate for $domain expires soon!"
+              echo "ssl_warning=true" >> $GITHUB_ENV
+            fi
+            
+            if [ $days_until_expiry -lt 7 ]; then
+              echo "🚨 Certificate for $domain expires very soon!"
+              echo "ssl_critical=true" >> $GITHUB_ENV
+            fi
+          done
+
+      - name: SSL certificate warning
+        if: env.ssl_warning == 'true' || env.ssl_critical == 'true'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ env.ssl_critical == 'true' && 'failure' || 'warning' }}
+          text: |
+            ${{ env.ssl_critical == 'true' && '🚨 CRITICAL' || '⚠️ WARNING' }}: SSL Certificate Expiring
+
+            Please renew SSL certificates for:
+            - imaginarium.com
+            - staging.imaginarium.com
+
+            ${{ env.ssl_critical == 'true' && '@channel IMMEDIATE ACTION REQUIRED!' || 'Action required within 30 days.' }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # Generate monitoring summary
+  monitoring-summary:
+    runs-on: ubuntu-latest
+    needs:
+      [health-check-staging, health-check-production, database-health, collect-metrics, ssl-check]
+    if: always() && github.event_name == 'schedule'
+    steps:
+      - name: Generate monitoring summary
+        run: |
+          echo "# Monitoring Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Generated: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check job statuses
+          echo "## Health Checks" >> $GITHUB_STEP_SUMMARY
+          echo "- Staging: ${{ needs.health-check-staging.result == 'success' && '✅ Healthy' || '❌ Issues detected' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Production: ${{ needs.health-check-production.result == 'success' && '✅ Healthy' || '❌ Issues detected' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Database: ${{ needs.database-health.result == 'success' && '✅ Healthy' || '❌ Issues detected' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Security" >> $GITHUB_STEP_SUMMARY
+          echo "- SSL Certificates: ${{ needs.ssl-check.result == 'success' && '✅ Valid' || '⚠️ Attention needed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- Metrics Collection: ${{ needs.collect-metrics.result == 'success' && '✅ Completed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY

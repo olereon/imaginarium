@@ -58,7 +58,10 @@
     "docker:prod": "./scripts/docker-prod.sh",
     "docker:prod:deploy": "./scripts/docker-prod.sh deploy",
     "docker:prod:update": "./scripts/docker-prod.sh update",
-    "docker:prod:backup": "./scripts/docker-prod.sh backup"
+    "docker:prod:backup": "./scripts/docker-prod.sh backup",
+    "release": "semantic-release",
+    "release:dry": "semantic-release --dry-run",
+    "version:check": "semantic-release --dry-run --no-ci"
   },
   "keywords": [
     "ai",
@@ -78,6 +81,12 @@
   "devDependencies": {
     "@commitlint/cli": "^18.4.3",
     "@commitlint/config-conventional": "^18.4.3",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^11.1.0",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^9.2.6",
+    "@semantic-release/npm": "^11.0.2",
+    "@semantic-release/release-notes-generator": "^12.1.0",
     "@types/node": "^20.10.5",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
@@ -93,6 +102,7 @@
     "lint-staged": "^15.2.0",
     "prettier": "^3.6.2",
     "rimraf": "^5.0.5",
+    "semantic-release": "^22.0.12",
     "typescript": "^5.3.3",
     "vitest": "^1.1.0"
   },

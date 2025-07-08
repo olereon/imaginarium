@@ -1,0 +1,196 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      version:
+        description: 'Version to deploy (leave empty for latest)'
+        required: false
+        type: string
+
+env:
+  NODE_VERSION: '20'
+  REGISTRY: ghcr.io
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to ${{ github.event.inputs.environment }}
+        run: |
+          echo "Deploying to ${{ github.event.inputs.environment }} environment..."
+          echo "Version: ${{ steps.version.outputs.version }}"
+
+          # Set environment-specific variables
+          case "${{ github.event.inputs.environment }}" in
+            "development")
+              NAMESPACE="imaginarium-dev"
+              REPLICAS=1
+              RESOURCES_LIMITS_CPU="200m"
+              RESOURCES_LIMITS_MEMORY="256Mi"
+              ;;
+            "staging")
+              NAMESPACE="imaginarium-staging"
+              REPLICAS=2
+              RESOURCES_LIMITS_CPU="500m"
+              RESOURCES_LIMITS_MEMORY="512Mi"
+              ;;
+            "production")
+              NAMESPACE="imaginarium-prod"
+              REPLICAS=3
+              RESOURCES_LIMITS_CPU="1000m"
+              RESOURCES_LIMITS_MEMORY="1Gi"
+              ;;
+          esac
+
+          # Example deployment commands (replace with actual deployment logic)
+          echo "Deploying to namespace: $NAMESPACE"
+          echo "Replicas: $REPLICAS"
+          echo "Resource limits - CPU: $RESOURCES_LIMITS_CPU, Memory: $RESOURCES_LIMITS_MEMORY"
+
+          # Example Kubernetes deployment
+          # kubectl set image deployment/imaginarium-server server=${{ env.REGISTRY }}/${{ github.repository }}/server:${{ steps.version.outputs.version }} -n $NAMESPACE
+          # kubectl set image deployment/imaginarium-client client=${{ env.REGISTRY }}/${{ github.repository }}/client:${{ steps.version.outputs.version }} -n $NAMESPACE
+
+          # Example Helm deployment
+          # helm upgrade --install imaginarium-${{ github.event.inputs.environment }} ./helm/imaginarium \
+          #   --namespace $NAMESPACE \
+          #   --set image.server.tag=${{ steps.version.outputs.version }} \
+          #   --set image.client.tag=${{ steps.version.outputs.version }} \
+          #   --set replicas=$REPLICAS \
+          #   --set resources.limits.cpu=$RESOURCES_LIMITS_CPU \
+          #   --set resources.limits.memory=$RESOURCES_LIMITS_MEMORY
+
+          # Example Docker Compose deployment
+          # docker-compose -f docker-compose.prod.yml pull
+          # docker-compose -f docker-compose.prod.yml up -d
+
+      - name: Run health checks
+        run: |
+          echo "Running health checks for ${{ github.event.inputs.environment }}..."
+
+          # Set environment-specific health check URLs
+          case "${{ github.event.inputs.environment }}" in
+            "development")
+              HEALTH_URL="https://dev.imaginarium.com/health"
+              ;;
+            "staging")
+              HEALTH_URL="https://staging.imaginarium.com/health"
+              ;;
+            "production")
+              HEALTH_URL="https://imaginarium.com/health"
+              ;;
+          esac
+
+          echo "Health check URL: $HEALTH_URL"
+
+          # Wait for deployment to be ready
+          sleep 30
+
+          # Check health endpoint
+          for i in {1..10}; do
+            if curl -f "$HEALTH_URL" > /dev/null 2>&1; then
+              echo "✅ Health check passed"
+              break
+            else
+              echo "⏳ Health check failed, retrying in 30s... ($i/10)"
+              sleep 30
+            fi
+            
+            if [ $i -eq 10 ]; then
+              echo "❌ Health check failed after 10 attempts"
+              exit 1
+            fi
+          done
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests for ${{ github.event.inputs.environment }}..."
+
+          # Set environment-specific URLs
+          case "${{ github.event.inputs.environment }}" in
+            "development")
+              API_URL="https://dev.imaginarium.com/api"
+              WEB_URL="https://dev.imaginarium.com"
+              ;;
+            "staging")
+              API_URL="https://staging.imaginarium.com/api"
+              WEB_URL="https://staging.imaginarium.com"
+              ;;
+            "production")
+              API_URL="https://imaginarium.com/api"
+              WEB_URL="https://imaginarium.com"
+              ;;
+          esac
+
+          echo "API URL: $API_URL"
+          echo "Web URL: $WEB_URL"
+
+          # Test API endpoints
+          curl -f "$API_URL/health" || (echo "❌ API health check failed" && exit 1)
+          curl -f "$API_URL/version" || (echo "❌ API version check failed" && exit 1)
+
+          # Test web application
+          curl -f "$WEB_URL" || (echo "❌ Web application check failed" && exit 1)
+
+          echo "✅ Smoke tests passed"
+
+      - name: Update deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment to ${{ github.event.inputs.environment }} successful"
+            STATUS="success"
+          else
+            echo "❌ Deployment to ${{ github.event.inputs.environment }} failed"
+            STATUS="failure"
+          fi
+
+          # Update deployment status (example)
+          # gh api repos/${{ github.repository }}/deployments \
+          #   -f environment=${{ github.event.inputs.environment }} \
+          #   -f ref=${{ github.sha }} \
+          #   -f description="Deployment to ${{ github.event.inputs.environment }}"
+
+      - name: Notify deployment
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            🚀 Deployment to ${{ github.event.inputs.environment }}
+
+            Status: ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }}
+            Version: ${{ steps.version.outputs.version }}
+            Repository: ${{ github.repository }}
+            Actor: ${{ github.actor }}
+
+            ${{ job.status == 'success' && 'Deployment completed successfully!' || 'Deployment failed. Please check the logs.' }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -1,0 +1,48 @@
+# Auto-assign reviewers based on file changes
+reviewers:
+  - core-team
+  - backend-team
+  - frontend-team
+
+skipKeywords:
+  - wip
+  - draft
+
+# Assign based on file patterns
+fileAssignees:
+  # Backend changes
+  'apps/server/**':
+    - backend-team
+  'libs/core/**':
+    - backend-team
+
+  # Frontend changes
+  'apps/client/**':
+    - frontend-team
+  'libs/ui/**':
+    - frontend-team
+
+  # Infrastructure changes
+  'docker/**':
+    - devops-team
+  '.github/**':
+    - devops-team
+  '*.yml':
+    - devops-team
+  '*.yaml':
+    - devops-team
+
+  # Documentation changes
+  'docs/**':
+    - documentation-team
+  '*.md':
+    - documentation-team
+
+# Number of reviewers to assign
+numberOfReviewers: 2
+numberOfAssignees: 1
+
+# Skip if PR is from these users/bots
+skipUsers:
+  - dependabot[bot]
+  - github-actions[bot]
