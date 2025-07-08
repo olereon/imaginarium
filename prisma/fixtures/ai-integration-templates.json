@@ -1,0 +1,612 @@
+[
+  {
+    "id": "template-multi-model-comparison",
+    "name": "Multi-Model AI Comparison",
+    "description": "Compare outputs from multiple AI models to find the best result",
+    "category": "ai-integration",
+    "isPublic": true,
+    "configuration": {
+      "nodes": [
+        {
+          "id": "input-{{uuid}}",
+          "type": "text-input",
+          "position": { "x": 100, "y": 200 },
+          "config": {
+            "label": "{{inputLabel}}",
+            "placeholder": "{{inputPlaceholder}}",
+            "required": true,
+            "multiline": true
+          }
+        },
+        {
+          "id": "openai-{{uuid}}",
+          "type": "openai-text",
+          "position": { "x": 400, "y": 100 },
+          "config": {
+            "model": "{{openaiModel}}",
+            "temperature": "{{temperature}}",
+            "maxTokens": "{{maxTokens}}"
+          }
+        },
+        {
+          "id": "anthropic-{{uuid}}",
+          "type": "anthropic-text",
+          "position": { "x": 400, "y": 200 },
+          "config": {
+            "model": "{{anthropicModel}}",
+            "temperature": "{{temperature}}",
+            "maxTokens": "{{maxTokens}}"
+          }
+        },
+        {
+          "id": "google-{{uuid}}",
+          "type": "google-text",
+          "position": { "x": 400, "y": 300 },
+          "config": {
+            "model": "{{googleModel}}",
+            "temperature": "{{temperature}}",
+            "maxTokens": "{{maxTokens}}"
+          }
+        },
+        {
+          "id": "comparison-{{uuid}}",
+          "type": "response-comparison",
+          "position": { "x": 700, "y": 200 },
+          "config": {
+            "criteria": ["{{comparisonCriteria}}"],
+            "weights": "{{criteriaWeights}}",
+            "judge": "{{judgeModel}}"
+          }
+        },
+        {
+          "id": "selector-{{uuid}}",
+          "type": "best-response-selector",
+          "position": { "x": 900, "y": 200 },
+          "config": {
+            "selectionMethod": "{{selectionMethod}}",
+            "includeScores": "{{includeScores}}"
+          }
+        },
+        {
+          "id": "output-{{uuid}}",
+          "type": "comparison-output",
+          "position": { "x": 1100, "y": 200 },
+          "config": {
+            "format": "{{outputFormat}}",
+            "includeAllResponses": "{{includeAllResponses}}",
+            "includeMetadata": "{{includeMetadata}}"
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": "conn-{{uuid}}-1",
+          "source": "input-{{uuid}}",
+          "target": "openai-{{uuid}}",
+          "sourceHandle": "output",
+          "targetHandle": "prompt"
+        },
+        {
+          "id": "conn-{{uuid}}-2",
+          "source": "input-{{uuid}}",
+          "target": "anthropic-{{uuid}}",
+          "sourceHandle": "output",
+          "targetHandle": "prompt"
+        },
+        {
+          "id": "conn-{{uuid}}-3",
+          "source": "input-{{uuid}}",
+          "target": "google-{{uuid}}",
+          "sourceHandle": "output",
+          "targetHandle": "prompt"
+        },
+        {
+          "id": "conn-{{uuid}}-4",
+          "source": "openai-{{uuid}}",
+          "target": "comparison-{{uuid}}",
+          "sourceHandle": "response",
+          "targetHandle": "response1"
+        },
+        {
+          "id": "conn-{{uuid}}-5",
+          "source": "anthropic-{{uuid}}",
+          "target": "comparison-{{uuid}}",
+          "sourceHandle": "response",
+          "targetHandle": "response2"
+        },
+        {
+          "id": "conn-{{uuid}}-6",
+          "source": "google-{{uuid}}",
+          "target": "comparison-{{uuid}}",
+          "sourceHandle": "response",
+          "targetHandle": "response3"
+        },
+        {
+          "id": "conn-{{uuid}}-7",
+          "source": "comparison-{{uuid}}",
+          "target": "selector-{{uuid}}",
+          "sourceHandle": "comparison",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-8",
+          "source": "selector-{{uuid}}",
+          "target": "output-{{uuid}}",
+          "sourceHandle": "selected",
+          "targetHandle": "input"
+        }
+      ]
+    },
+    "parameters": {
+      "inputLabel": {
+        "type": "string",
+        "default": "Enter your prompt",
+        "description": "Input label"
+      },
+      "inputPlaceholder": {
+        "type": "string",
+        "default": "What would you like all AI models to respond to?",
+        "description": "Input placeholder"
+      },
+      "openaiModel": {
+        "type": "select",
+        "options": ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"],
+        "default": "gpt-4",
+        "description": "OpenAI model"
+      },
+      "anthropicModel": {
+        "type": "select",
+        "options": ["claude-3-opus", "claude-3-sonnet", "claude-3-haiku"],
+        "default": "claude-3-sonnet",
+        "description": "Anthropic model"
+      },
+      "googleModel": {
+        "type": "select",
+        "options": ["gemini-pro", "gemini-pro-vision", "palm-2"],
+        "default": "gemini-pro",
+        "description": "Google model"
+      },
+      "temperature": {
+        "type": "number",
+        "min": 0,
+        "max": 2,
+        "default": 0.7,
+        "description": "Temperature"
+      },
+      "maxTokens": {
+        "type": "number",
+        "min": 1,
+        "max": 4000,
+        "default": 1000,
+        "description": "Max tokens"
+      },
+      "comparisonCriteria": {
+        "type": "multiselect",
+        "options": ["accuracy", "creativity", "clarity", "relevance", "helpfulness", "completeness"],
+        "default": ["accuracy", "clarity", "helpfulness"],
+        "description": "Comparison criteria"
+      },
+      "criteriaWeights": {
+        "type": "json",
+        "default": "{\"accuracy\": 0.4, \"clarity\": 0.3, \"helpfulness\": 0.3}",
+        "description": "Criteria weights"
+      },
+      "judgeModel": {
+        "type": "select",
+        "options": ["gpt-4", "claude-3-opus", "gemini-pro"],
+        "default": "gpt-4",
+        "description": "Judge model for comparison"
+      },
+      "selectionMethod": {
+        "type": "select",
+        "options": ["highest-score", "weighted-average", "consensus"],
+        "default": "highest-score",
+        "description": "Selection method"
+      },
+      "includeScores": {
+        "type": "boolean",
+        "default": true,
+        "description": "Include comparison scores"
+      },
+      "outputFormat": {
+        "type": "select",
+        "options": ["json", "markdown", "html"],
+        "default": "json",
+        "description": "Output format"
+      },
+      "includeAllResponses": {
+        "type": "boolean",
+        "default": true,
+        "description": "Include all model responses"
+      },
+      "includeMetadata": {
+        "type": "boolean",
+        "default": true,
+        "description": "Include metadata"
+      }
+    },
+    "usageCount": 0,
+    "tags": ["ai", "comparison", "multi-model", "evaluation"],
+    "difficulty": "advanced",
+    "estimatedTime": "30-90 seconds",
+    "cost": "high"
+  },
+  {
+    "id": "template-chain-of-thought",
+    "name": "Chain of Thought Reasoner",
+    "description": "Break down complex problems into step-by-step reasoning",
+    "category": "ai-integration",
+    "isPublic": true,
+    "configuration": {
+      "nodes": [
+        {
+          "id": "input-{{uuid}}",
+          "type": "text-input",
+          "position": { "x": 100, "y": 100 },
+          "config": {
+            "label": "{{inputLabel}}",
+            "placeholder": "{{inputPlaceholder}}",
+            "required": true,
+            "multiline": true
+          }
+        },
+        {
+          "id": "problem-analysis-{{uuid}}",
+          "type": "{{aiProvider}}-text",
+          "position": { "x": 300, "y": 100 },
+          "config": {
+            "model": "{{model}}",
+            "task": "analyze-problem",
+            "temperature": 0.1,
+            "maxTokens": 1000,
+            "systemPrompt": "Break down this problem into smaller sub-problems"
+          }
+        },
+        {
+          "id": "step-generator-{{uuid}}",
+          "type": "{{aiProvider}}-text",
+          "position": { "x": 500, "y": 100 },
+          "config": {
+            "model": "{{model}}",
+            "task": "generate-steps",
+            "temperature": 0.2,
+            "maxTokens": 1500,
+            "systemPrompt": "Create a step-by-step solution plan"
+          }
+        },
+        {
+          "id": "step-executor-{{uuid}}",
+          "type": "step-executor",
+          "position": { "x": 700, "y": 100 },
+          "config": {
+            "maxSteps": "{{maxSteps}}",
+            "allowRevision": "{{allowRevision}}",
+            "model": "{{model}}"
+          }
+        },
+        {
+          "id": "solution-validator-{{uuid}}",
+          "type": "{{aiProvider}}-text",
+          "position": { "x": 900, "y": 100 },
+          "config": {
+            "model": "{{model}}",
+            "task": "validate-solution",
+            "temperature": 0.1,
+            "maxTokens": 500,
+            "systemPrompt": "Validate the solution and check for errors"
+          }
+        },
+        {
+          "id": "output-{{uuid}}",
+          "type": "reasoning-output",
+          "position": { "x": 1100, "y": 100 },
+          "config": {
+            "format": "{{outputFormat}}",
+            "includeSteps": "{{includeSteps}}",
+            "includeReasoning": "{{includeReasoning}}"
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": "conn-{{uuid}}-1",
+          "source": "input-{{uuid}}",
+          "target": "problem-analysis-{{uuid}}",
+          "sourceHandle": "output",
+          "targetHandle": "prompt"
+        },
+        {
+          "id": "conn-{{uuid}}-2",
+          "source": "problem-analysis-{{uuid}}",
+          "target": "step-generator-{{uuid}}",
+          "sourceHandle": "analysis",
+          "targetHandle": "problem"
+        },
+        {
+          "id": "conn-{{uuid}}-3",
+          "source": "step-generator-{{uuid}}",
+          "target": "step-executor-{{uuid}}",
+          "sourceHandle": "steps",
+          "targetHandle": "steps"
+        },
+        {
+          "id": "conn-{{uuid}}-4",
+          "source": "step-executor-{{uuid}}",
+          "target": "solution-validator-{{uuid}}",
+          "sourceHandle": "solution",
+          "targetHandle": "solution"
+        },
+        {
+          "id": "conn-{{uuid}}-5",
+          "source": "solution-validator-{{uuid}}",
+          "target": "output-{{uuid}}",
+          "sourceHandle": "validated",
+          "targetHandle": "input"
+        }
+      ]
+    },
+    "parameters": {
+      "inputLabel": {
+        "type": "string",
+        "default": "Problem to solve",
+        "description": "Input label"
+      },
+      "inputPlaceholder": {
+        "type": "string",
+        "default": "Enter a complex problem that needs step-by-step reasoning...",
+        "description": "Input placeholder"
+      },
+      "aiProvider": {
+        "type": "select",
+        "options": ["openai", "anthropic", "google"],
+        "default": "openai",
+        "description": "AI provider"
+      },
+      "model": {
+        "type": "string",
+        "default": "gpt-4",
+        "description": "AI model"
+      },
+      "maxSteps": {
+        "type": "number",
+        "min": 3,
+        "max": 20,
+        "default": 10,
+        "description": "Maximum reasoning steps"
+      },
+      "allowRevision": {
+        "type": "boolean",
+        "default": true,
+        "description": "Allow step revision"
+      },
+      "outputFormat": {
+        "type": "select",
+        "options": ["json", "markdown", "structured"],
+        "default": "structured",
+        "description": "Output format"
+      },
+      "includeSteps": {
+        "type": "boolean",
+        "default": true,
+        "description": "Include reasoning steps"
+      },
+      "includeReasoning": {
+        "type": "boolean",
+        "default": true,
+        "description": "Include reasoning process"
+      }
+    },
+    "usageCount": 0,
+    "tags": ["ai", "reasoning", "problem-solving", "chain-of-thought"],
+    "difficulty": "advanced",
+    "estimatedTime": "1-3 minutes",
+    "cost": "medium-high"
+  },
+  {
+    "id": "template-multimodal-analyzer",
+    "name": "Multimodal Content Analyzer",
+    "description": "Analyze content across text, images, and audio with AI",
+    "category": "ai-integration",
+    "isPublic": true,
+    "configuration": {
+      "nodes": [
+        {
+          "id": "input-{{uuid}}",
+          "type": "multi-input",
+          "position": { "x": 100, "y": 150 },
+          "config": {
+            "inputs": [
+              { "type": "text", "label": "Text Content", "required": false },
+              { "type": "file", "label": "Image/Audio File", "required": false },
+              { "type": "url", "label": "Content URL", "required": false }
+            ],
+            "requireAtLeastOne": true
+          }
+        },
+        {
+          "id": "content-detector-{{uuid}}",
+          "type": "content-type-detector",
+          "position": { "x": 300, "y": 150 },
+          "config": {
+            "autoDetect": true,
+            "supportedTypes": ["text", "image", "audio", "video", "pdf"]
+          }
+        },
+        {
+          "id": "text-analyzer-{{uuid}}",
+          "type": "{{aiProvider}}-text",
+          "position": { "x": 500, "y": 50 },
+          "config": {
+            "model": "{{textModel}}",
+            "task": "analyze-text",
+            "temperature": 0.3,
+            "maxTokens": 1000
+          }
+        },
+        {
+          "id": "vision-analyzer-{{uuid}}",
+          "type": "{{aiProvider}}-vision",
+          "position": { "x": 500, "y": 150 },
+          "config": {
+            "model": "{{visionModel}}",
+            "task": "analyze-image",
+            "temperature": 0.2,
+            "maxTokens": 1000
+          }
+        },
+        {
+          "id": "audio-analyzer-{{uuid}}",
+          "type": "{{aiProvider}}-audio",
+          "position": { "x": 500, "y": 250 },
+          "config": {
+            "model": "{{audioModel}}",
+            "task": "analyze-audio",
+            "includeTranscription": true,
+            "includeSentiment": true
+          }
+        },
+        {
+          "id": "content-synthesizer-{{uuid}}",
+          "type": "{{aiProvider}}-text",
+          "position": { "x": 700, "y": 150 },
+          "config": {
+            "model": "{{textModel}}",
+            "task": "synthesize-analysis",
+            "temperature": 0.4,
+            "maxTokens": 2000
+          }
+        },
+        {
+          "id": "insights-generator-{{uuid}}",
+          "type": "{{aiProvider}}-text",
+          "position": { "x": 900, "y": 150 },
+          "config": {
+            "model": "{{textModel}}",
+            "task": "generate-insights",
+            "temperature": 0.5,
+            "maxTokens": 1500
+          }
+        },
+        {
+          "id": "output-{{uuid}}",
+          "type": "multimodal-output",
+          "position": { "x": 1100, "y": 150 },
+          "config": {
+            "format": "{{outputFormat}}",
+            "includeOriginal": "{{includeOriginal}}",
+            "includeConfidence": "{{includeConfidence}}"
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": "conn-{{uuid}}-1",
+          "source": "input-{{uuid}}",
+          "target": "content-detector-{{uuid}}",
+          "sourceHandle": "content",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-2",
+          "source": "content-detector-{{uuid}}",
+          "target": "text-analyzer-{{uuid}}",
+          "sourceHandle": "text",
+          "targetHandle": "text"
+        },
+        {
+          "id": "conn-{{uuid}}-3",
+          "source": "content-detector-{{uuid}}",
+          "target": "vision-analyzer-{{uuid}}",
+          "sourceHandle": "image",
+          "targetHandle": "image"
+        },
+        {
+          "id": "conn-{{uuid}}-4",
+          "source": "content-detector-{{uuid}}",
+          "target": "audio-analyzer-{{uuid}}",
+          "sourceHandle": "audio",
+          "targetHandle": "audio"
+        },
+        {
+          "id": "conn-{{uuid}}-5",
+          "source": "text-analyzer-{{uuid}}",
+          "target": "content-synthesizer-{{uuid}}",
+          "sourceHandle": "analysis",
+          "targetHandle": "text-analysis"
+        },
+        {
+          "id": "conn-{{uuid}}-6",
+          "source": "vision-analyzer-{{uuid}}",
+          "target": "content-synthesizer-{{uuid}}",
+          "sourceHandle": "analysis",
+          "targetHandle": "vision-analysis"
+        },
+        {
+          "id": "conn-{{uuid}}-7",
+          "source": "audio-analyzer-{{uuid}}",
+          "target": "content-synthesizer-{{uuid}}",
+          "sourceHandle": "analysis",
+          "targetHandle": "audio-analysis"
+        },
+        {
+          "id": "conn-{{uuid}}-8",
+          "source": "content-synthesizer-{{uuid}}",
+          "target": "insights-generator-{{uuid}}",
+          "sourceHandle": "synthesis",
+          "targetHandle": "analysis"
+        },
+        {
+          "id": "conn-{{uuid}}-9",
+          "source": "insights-generator-{{uuid}}",
+          "target": "output-{{uuid}}",
+          "sourceHandle": "insights",
+          "targetHandle": "input"
+        }
+      ]
+    },
+    "parameters": {
+      "aiProvider": {
+        "type": "select",
+        "options": ["openai", "anthropic", "google"],
+        "default": "openai",
+        "description": "AI provider"
+      },
+      "textModel": {
+        "type": "string",
+        "default": "gpt-4",
+        "description": "Text analysis model"
+      },
+      "visionModel": {
+        "type": "string",
+        "default": "gpt-4-vision-preview",
+        "description": "Vision analysis model"
+      },
+      "audioModel": {
+        "type": "string",
+        "default": "whisper-1",
+        "description": "Audio analysis model"
+      },
+      "outputFormat": {
+        "type": "select",
+        "options": ["json", "markdown", "html", "report"],
+        "default": "json",
+        "description": "Output format"
+      },
+      "includeOriginal": {
+        "type": "boolean",
+        "default": false,
+        "description": "Include original content"
+      },
+      "includeConfidence": {
+        "type": "boolean",
+        "default": true,
+        "description": "Include confidence scores"
+      }
+    },
+    "usageCount": 0,
+    "tags": ["ai", "multimodal", "vision", "audio", "analysis"],
+    "difficulty": "expert",
+    "estimatedTime": "2-5 minutes",
+    "cost": "high"
+  }
+]

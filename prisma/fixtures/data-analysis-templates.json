@@ -1,0 +1,630 @@
+[
+  {
+    "id": "template-data-analyzer",
+    "name": "Smart Data Analyzer",
+    "description": "Analyze datasets and generate comprehensive reports with visualizations",
+    "category": "data-analysis",
+    "isPublic": true,
+    "configuration": {
+      "nodes": [
+        {
+          "id": "input-{{uuid}}",
+          "type": "file-input",
+          "position": { "x": 100, "y": 100 },
+          "config": {
+            "label": "{{inputLabel}}",
+            "acceptedTypes": ["{{dataTypes}}"],
+            "maxSize": "{{maxFileSize}}",
+            "required": true
+          }
+        },
+        {
+          "id": "validation-{{uuid}}",
+          "type": "data-validation",
+          "position": { "x": 300, "y": 100 },
+          "config": {
+            "strictMode": "{{strictValidation}}",
+            "autoCorrect": "{{autoCorrect}}",
+            "logErrors": true
+          }
+        },
+        {
+          "id": "transform-{{uuid}}",
+          "type": "data-transform",
+          "position": { "x": 500, "y": 100 },
+          "config": {
+            "operations": ["{{transformOperations}}"],
+            "preserveOriginal": true
+          }
+        },
+        {
+          "id": "statistics-{{uuid}}",
+          "type": "statistical-analysis",
+          "position": { "x": 700, "y": 50 },
+          "config": {
+            "analysisType": "{{analysisType}}",
+            "metrics": ["{{metrics}}"],
+            "confidence": "{{confidenceLevel}}"
+          }
+        },
+        {
+          "id": "visualization-{{uuid}}",
+          "type": "data-visualization",
+          "position": { "x": 700, "y": 150 },
+          "config": {
+            "chartType": "{{chartType}}",
+            "theme": "{{theme}}",
+            "interactive": "{{interactive}}",
+            "exportFormat": "{{vizExportFormat}}"
+          }
+        },
+        {
+          "id": "insights-{{uuid}}",
+          "type": "{{aiProvider}}-text",
+          "position": { "x": 900, "y": 100 },
+          "config": {
+            "model": "{{model}}",
+            "task": "generate-insights",
+            "temperature": 0.3,
+            "maxTokens": 2000
+          }
+        },
+        {
+          "id": "report-{{uuid}}",
+          "type": "report-generator",
+          "position": { "x": 1100, "y": 100 },
+          "config": {
+            "format": "{{reportFormat}}",
+            "template": "{{reportTemplate}}",
+            "includeRawData": "{{includeRawData}}",
+            "includeCharts": true
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": "conn-{{uuid}}-1",
+          "source": "input-{{uuid}}",
+          "target": "validation-{{uuid}}",
+          "sourceHandle": "data",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-2",
+          "source": "validation-{{uuid}}",
+          "target": "transform-{{uuid}}",
+          "sourceHandle": "validated",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-3",
+          "source": "transform-{{uuid}}",
+          "target": "statistics-{{uuid}}",
+          "sourceHandle": "transformed",
+          "targetHandle": "data"
+        },
+        {
+          "id": "conn-{{uuid}}-4",
+          "source": "transform-{{uuid}}",
+          "target": "visualization-{{uuid}}",
+          "sourceHandle": "transformed",
+          "targetHandle": "data"
+        },
+        {
+          "id": "conn-{{uuid}}-5",
+          "source": "statistics-{{uuid}}",
+          "target": "insights-{{uuid}}",
+          "sourceHandle": "results",
+          "targetHandle": "statistics"
+        },
+        {
+          "id": "conn-{{uuid}}-6",
+          "source": "visualization-{{uuid}}",
+          "target": "insights-{{uuid}}",
+          "sourceHandle": "charts",
+          "targetHandle": "visualizations"
+        },
+        {
+          "id": "conn-{{uuid}}-7",
+          "source": "statistics-{{uuid}}",
+          "target": "report-{{uuid}}",
+          "sourceHandle": "results",
+          "targetHandle": "statistics"
+        },
+        {
+          "id": "conn-{{uuid}}-8",
+          "source": "visualization-{{uuid}}",
+          "target": "report-{{uuid}}",
+          "sourceHandle": "charts",
+          "targetHandle": "visualizations"
+        },
+        {
+          "id": "conn-{{uuid}}-9",
+          "source": "insights-{{uuid}}",
+          "target": "report-{{uuid}}",
+          "sourceHandle": "insights",
+          "targetHandle": "insights"
+        }
+      ]
+    },
+    "parameters": {
+      "inputLabel": {
+        "type": "string",
+        "default": "Upload data file",
+        "description": "Label for file input"
+      },
+      "dataTypes": {
+        "type": "multiselect",
+        "options": ["csv", "json", "xlsx", "parquet", "sql", "xml"],
+        "default": ["csv", "json", "xlsx"],
+        "description": "Accepted data file types"
+      },
+      "maxFileSize": {
+        "type": "number",
+        "default": 100,
+        "description": "Maximum file size in MB"
+      },
+      "strictValidation": {
+        "type": "boolean",
+        "default": false,
+        "description": "Enable strict validation mode"
+      },
+      "autoCorrect": {
+        "type": "boolean",
+        "default": true,
+        "description": "Auto-correct common data issues"
+      },
+      "transformOperations": {
+        "type": "multiselect",
+        "options": ["clean", "normalize", "deduplicate", "aggregate", "pivot", "merge"],
+        "default": ["clean", "normalize"],
+        "description": "Data transformation operations"
+      },
+      "analysisType": {
+        "type": "select",
+        "options": ["descriptive", "predictive", "diagnostic", "prescriptive"],
+        "default": "descriptive",
+        "description": "Type of analysis"
+      },
+      "metrics": {
+        "type": "multiselect",
+        "options": ["mean", "median", "mode", "std", "variance", "correlation", "regression"],
+        "default": ["mean", "median", "std"],
+        "description": "Statistical metrics"
+      },
+      "confidenceLevel": {
+        "type": "number",
+        "min": 0.8,
+        "max": 0.99,
+        "default": 0.95,
+        "description": "Statistical confidence level"
+      },
+      "chartType": {
+        "type": "select",
+        "options": ["auto", "bar", "line", "scatter", "pie", "heatmap", "box", "violin"],
+        "default": "auto",
+        "description": "Chart type"
+      },
+      "theme": {
+        "type": "select",
+        "options": ["default", "dark", "light", "colorful", "minimal", "professional"],
+        "default": "professional",
+        "description": "Chart theme"
+      },
+      "interactive": {
+        "type": "boolean",
+        "default": true,
+        "description": "Make charts interactive"
+      },
+      "vizExportFormat": {
+        "type": "select",
+        "options": ["png", "svg", "pdf", "html"],
+        "default": "png",
+        "description": "Visualization export format"
+      },
+      "aiProvider": {
+        "type": "select",
+        "options": ["openai", "anthropic", "google"],
+        "default": "openai",
+        "description": "AI provider for insights"
+      },
+      "model": {
+        "type": "string",
+        "default": "gpt-4",
+        "description": "AI model for insights"
+      },
+      "reportFormat": {
+        "type": "select",
+        "options": ["pdf", "html", "docx", "pptx"],
+        "default": "pdf",
+        "description": "Report format"
+      },
+      "reportTemplate": {
+        "type": "select",
+        "options": ["standard", "executive", "detailed", "minimal"],
+        "default": "standard",
+        "description": "Report template"
+      },
+      "includeRawData": {
+        "type": "boolean",
+        "default": false,
+        "description": "Include raw data in report"
+      }
+    },
+    "usageCount": 0,
+    "tags": ["data-analysis", "statistics", "visualization", "reporting", "insights"],
+    "difficulty": "advanced",
+    "estimatedTime": "3-8 minutes",
+    "cost": "medium-high"
+  },
+  {
+    "id": "template-survey-analyzer",
+    "name": "Survey Response Analyzer",
+    "description": "Analyze survey responses and generate insights about customer feedback",
+    "category": "data-analysis",
+    "isPublic": true,
+    "configuration": {
+      "nodes": [
+        {
+          "id": "input-{{uuid}}",
+          "type": "file-input",
+          "position": { "x": 100, "y": 100 },
+          "config": {
+            "label": "Survey Data",
+            "acceptedTypes": ["csv", "xlsx", "json"],
+            "required": true
+          }
+        },
+        {
+          "id": "preprocess-{{uuid}}",
+          "type": "text-preprocessing",
+          "position": { "x": 300, "y": 100 },
+          "config": {
+            "operations": ["clean", "normalize", "tokenize"],
+            "language": "{{language}}"
+          }
+        },
+        {
+          "id": "sentiment-{{uuid}}",
+          "type": "{{aiProvider}}-text",
+          "position": { "x": 500, "y": 50 },
+          "config": {
+            "model": "{{model}}",
+            "task": "sentiment-analysis",
+            "temperature": 0.1,
+            "maxTokens": 100
+          }
+        },
+        {
+          "id": "topics-{{uuid}}",
+          "type": "{{aiProvider}}-text",
+          "position": { "x": 500, "y": 150 },
+          "config": {
+            "model": "{{model}}",
+            "task": "topic-extraction",
+            "temperature": 0.2,
+            "maxTokens": 500
+          }
+        },
+        {
+          "id": "keywords-{{uuid}}",
+          "type": "keyword-extraction",
+          "position": { "x": 500, "y": 250 },
+          "config": {
+            "maxKeywords": 50,
+            "minFrequency": 2
+          }
+        },
+        {
+          "id": "analytics-{{uuid}}",
+          "type": "survey-analytics",
+          "position": { "x": 700, "y": 100 },
+          "config": {
+            "generateNPS": true,
+            "generateCSAT": true,
+            "generateWordCloud": true
+          }
+        },
+        {
+          "id": "insights-{{uuid}}",
+          "type": "{{aiProvider}}-text",
+          "position": { "x": 900, "y": 100 },
+          "config": {
+            "model": "{{model}}",
+            "task": "survey-insights",
+            "temperature": 0.3,
+            "maxTokens": 2000
+          }
+        },
+        {
+          "id": "report-{{uuid}}",
+          "type": "survey-report",
+          "position": { "x": 1100, "y": 100 },
+          "config": {
+            "format": "{{reportFormat}}",
+            "includeCharts": true,
+            "includeRecommendations": true
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": "conn-{{uuid}}-1",
+          "source": "input-{{uuid}}",
+          "target": "preprocess-{{uuid}}",
+          "sourceHandle": "data",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-2",
+          "source": "preprocess-{{uuid}}",
+          "target": "sentiment-{{uuid}}",
+          "sourceHandle": "text",
+          "targetHandle": "text"
+        },
+        {
+          "id": "conn-{{uuid}}-3",
+          "source": "preprocess-{{uuid}}",
+          "target": "topics-{{uuid}}",
+          "sourceHandle": "text",
+          "targetHandle": "text"
+        },
+        {
+          "id": "conn-{{uuid}}-4",
+          "source": "preprocess-{{uuid}}",
+          "target": "keywords-{{uuid}}",
+          "sourceHandle": "text",
+          "targetHandle": "text"
+        },
+        {
+          "id": "conn-{{uuid}}-5",
+          "source": "sentiment-{{uuid}}",
+          "target": "analytics-{{uuid}}",
+          "sourceHandle": "sentiment",
+          "targetHandle": "sentiment"
+        },
+        {
+          "id": "conn-{{uuid}}-6",
+          "source": "topics-{{uuid}}",
+          "target": "analytics-{{uuid}}",
+          "sourceHandle": "topics",
+          "targetHandle": "topics"
+        },
+        {
+          "id": "conn-{{uuid}}-7",
+          "source": "keywords-{{uuid}}",
+          "target": "analytics-{{uuid}}",
+          "sourceHandle": "keywords",
+          "targetHandle": "keywords"
+        },
+        {
+          "id": "conn-{{uuid}}-8",
+          "source": "analytics-{{uuid}}",
+          "target": "insights-{{uuid}}",
+          "sourceHandle": "analytics",
+          "targetHandle": "data"
+        },
+        {
+          "id": "conn-{{uuid}}-9",
+          "source": "analytics-{{uuid}}",
+          "target": "report-{{uuid}}",
+          "sourceHandle": "analytics",
+          "targetHandle": "analytics"
+        },
+        {
+          "id": "conn-{{uuid}}-10",
+          "source": "insights-{{uuid}}",
+          "target": "report-{{uuid}}",
+          "sourceHandle": "insights",
+          "targetHandle": "insights"
+        }
+      ]
+    },
+    "parameters": {
+      "language": {
+        "type": "select",
+        "options": ["auto", "en", "es", "fr", "de", "it", "pt", "ja", "zh"],
+        "default": "auto",
+        "description": "Survey language"
+      },
+      "aiProvider": {
+        "type": "select",
+        "options": ["openai", "anthropic", "google"],
+        "default": "openai",
+        "description": "AI provider"
+      },
+      "model": {
+        "type": "string",
+        "default": "gpt-4",
+        "description": "AI model"
+      },
+      "reportFormat": {
+        "type": "select",
+        "options": ["pdf", "html", "pptx"],
+        "default": "pdf",
+        "description": "Report format"
+      }
+    },
+    "usageCount": 0,
+    "tags": ["survey", "sentiment", "customer-feedback", "nlp", "analytics"],
+    "difficulty": "advanced",
+    "estimatedTime": "5-10 minutes",
+    "cost": "medium-high"
+  },
+  {
+    "id": "template-financial-analyzer",
+    "name": "Financial Data Analyzer",
+    "description": "Analyze financial data and generate investment insights",
+    "category": "data-analysis",
+    "isPublic": false,
+    "configuration": {
+      "nodes": [
+        {
+          "id": "input-{{uuid}}",
+          "type": "multi-input",
+          "position": { "x": 100, "y": 100 },
+          "config": {
+            "inputs": [
+              { "type": "file", "label": "Financial Data", "required": true },
+              { "type": "text", "label": "Analysis Period", "required": false },
+              { "type": "number", "label": "Risk Tolerance", "required": false }
+            ]
+          }
+        },
+        {
+          "id": "validation-{{uuid}}",
+          "type": "financial-validation",
+          "position": { "x": 300, "y": 100 },
+          "config": {
+            "validatePositions": true,
+            "validatePrices": true,
+            "validateDates": true
+          }
+        },
+        {
+          "id": "metrics-{{uuid}}",
+          "type": "financial-metrics",
+          "position": { "x": 500, "y": 50 },
+          "config": {
+            "calculateReturns": true,
+            "calculateVolatility": true,
+            "calculateSharpe": true,
+            "calculateBeta": true
+          }
+        },
+        {
+          "id": "risk-{{uuid}}",
+          "type": "risk-analysis",
+          "position": { "x": 500, "y": 150 },
+          "config": {
+            "varCalculation": true,
+            "stressTests": true,
+            "correlationAnalysis": true
+          }
+        },
+        {
+          "id": "forecasting-{{uuid}}",
+          "type": "{{aiProvider}}-text",
+          "position": { "x": 700, "y": 100 },
+          "config": {
+            "model": "{{model}}",
+            "task": "financial-forecasting",
+            "temperature": 0.2,
+            "maxTokens": 1500
+          }
+        },
+        {
+          "id": "recommendations-{{uuid}}",
+          "type": "{{aiProvider}}-text",
+          "position": { "x": 900, "y": 100 },
+          "config": {
+            "model": "{{model}}",
+            "task": "investment-recommendations",
+            "temperature": 0.3,
+            "maxTokens": 2000
+          }
+        },
+        {
+          "id": "report-{{uuid}}",
+          "type": "financial-report",
+          "position": { "x": 1100, "y": 100 },
+          "config": {
+            "format": "{{reportFormat}}",
+            "includeCharts": true,
+            "includeRiskWarnings": true,
+            "confidential": true
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": "conn-{{uuid}}-1",
+          "source": "input-{{uuid}}",
+          "target": "validation-{{uuid}}",
+          "sourceHandle": "data",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-2",
+          "source": "validation-{{uuid}}",
+          "target": "metrics-{{uuid}}",
+          "sourceHandle": "validated",
+          "targetHandle": "data"
+        },
+        {
+          "id": "conn-{{uuid}}-3",
+          "source": "validation-{{uuid}}",
+          "target": "risk-{{uuid}}",
+          "sourceHandle": "validated",
+          "targetHandle": "data"
+        },
+        {
+          "id": "conn-{{uuid}}-4",
+          "source": "metrics-{{uuid}}",
+          "target": "forecasting-{{uuid}}",
+          "sourceHandle": "metrics",
+          "targetHandle": "metrics"
+        },
+        {
+          "id": "conn-{{uuid}}-5",
+          "source": "risk-{{uuid}}",
+          "target": "forecasting-{{uuid}}",
+          "sourceHandle": "risk",
+          "targetHandle": "risk"
+        },
+        {
+          "id": "conn-{{uuid}}-6",
+          "source": "forecasting-{{uuid}}",
+          "target": "recommendations-{{uuid}}",
+          "sourceHandle": "forecast",
+          "targetHandle": "forecast"
+        },
+        {
+          "id": "conn-{{uuid}}-7",
+          "source": "metrics-{{uuid}}",
+          "target": "report-{{uuid}}",
+          "sourceHandle": "metrics",
+          "targetHandle": "metrics"
+        },
+        {
+          "id": "conn-{{uuid}}-8",
+          "source": "risk-{{uuid}}",
+          "target": "report-{{uuid}}",
+          "sourceHandle": "risk",
+          "targetHandle": "risk"
+        },
+        {
+          "id": "conn-{{uuid}}-9",
+          "source": "recommendations-{{uuid}}",
+          "target": "report-{{uuid}}",
+          "sourceHandle": "recommendations",
+          "targetHandle": "recommendations"
+        }
+      ]
+    },
+    "parameters": {
+      "aiProvider": {
+        "type": "select",
+        "options": ["openai", "anthropic"],
+        "default": "openai",
+        "description": "AI provider"
+      },
+      "model": {
+        "type": "string",
+        "default": "gpt-4",
+        "description": "AI model"
+      },
+      "reportFormat": {
+        "type": "select",
+        "options": ["pdf", "excel", "html"],
+        "default": "pdf",
+        "description": "Report format"
+      }
+    },
+    "usageCount": 0,
+    "tags": ["finance", "investment", "risk", "forecasting", "analytics"],
+    "difficulty": "expert",
+    "estimatedTime": "10-15 minutes",
+    "cost": "high"
+  }
+]

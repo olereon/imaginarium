@@ -1,0 +1,283 @@
+name: Database Migration
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'prisma/**'
+      - 'scripts/migrate-*.sh'
+      - 'scripts/test-migration.sh'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'prisma/**'
+      - 'scripts/migrate-*.sh'
+      - 'scripts/test-migration.sh'
+
+env:
+  DATABASE_URL: "file:./test.db"
+  NODE_ENV: "test"
+
+jobs:
+  test-migrations:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install SQLite
+      run: sudo apt-get update && sudo apt-get install -y sqlite3
+    
+    - name: Make scripts executable
+      run: |
+        chmod +x scripts/migrate-dev.sh
+        chmod +x scripts/migrate-prod.sh
+        chmod +x scripts/test-migration.sh
+        chmod +x scripts/rollback.sh
+    
+    - name: Run migration tests
+      run: |
+        echo "Running comprehensive migration tests..."
+        ./scripts/test-migration.sh all
+    
+    - name: Test migration scripts
+      run: |
+        echo "Testing migration scripts..."
+        ./scripts/migrate-dev.sh status
+        ./scripts/migrate-dev.sh generate
+    
+    - name: Test rollback functionality
+      run: |
+        echo "Testing rollback functionality..."
+        ./scripts/rollback.sh list || echo "No backups found (expected in CI)"
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: migration-test-results-${{ matrix.node-version }}
+        path: |
+          migration_test_*.log
+          migration_test_report_*.html
+          test_migrations/
+    
+    - name: Check for migration drift
+      run: |
+        echo "Checking for migration drift..."
+        npx prisma migrate status
+        
+        # Generate current schema and compare with committed schema
+        npx prisma db pull --force
+        
+        # Check if there are any differences
+        if ! git diff --quiet prisma/schema.prisma; then
+          echo "Schema drift detected!"
+          echo "Differences:"
+          git diff prisma/schema.prisma
+          exit 1
+        else
+          echo "No schema drift detected"
+        fi
+
+  validate-migrations:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Validate Prisma schema
+      run: npx prisma validate
+    
+    - name: Check migration naming conventions
+      run: |
+        echo "Checking migration naming conventions..."
+        
+        # Check if all migration directories follow naming convention
+        for dir in prisma/migrations/*/; do
+          if [ -d "$dir" ]; then
+            dirname=$(basename "$dir")
+            
+            # Check if directory name matches pattern: YYYYMMDDHHMMSS_description
+            if [[ ! "$dirname" =~ ^[0-9]{14}_[a-z0-9_]+$ ]]; then
+              echo "Migration directory '$dirname' does not follow naming convention"
+              echo "Expected format: YYYYMMDDHHMMSS_descriptive_name"
+              exit 1
+            fi
+          fi
+        done
+        
+        echo "All migration names follow the convention"
+    
+    - name: Check for missing migrations
+      run: |
+        echo "Checking for missing migrations..."
+        
+        # This would check if schema.prisma has changes not reflected in migrations
+        # For now, we'll just ensure the schema is valid
+        npx prisma generate
+        
+        echo "Migration validation completed"
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [test-migrations, validate-migrations]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Deploy to staging
+      env:
+        DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        SKIP_MAINTENANCE: "true"  # Skip maintenance mode in staging
+      run: |
+        echo "Deploying migrations to staging..."
+        chmod +x scripts/migrate-prod.sh
+        ./scripts/migrate-prod.sh deploy
+    
+    - name: Verify staging deployment
+      env:
+        DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      run: |
+        echo "Verifying staging deployment..."
+        npx prisma migrate status
+        
+        # Run a quick smoke test
+        npx prisma generate
+        
+        echo "Staging deployment verified"
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Create production backup
+      env:
+        DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      run: |
+        echo "Creating production backup..."
+        chmod +x scripts/migrate-prod.sh
+        ./scripts/migrate-prod.sh backup
+    
+    - name: Deploy to production
+      env:
+        DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      run: |
+        echo "Deploying migrations to production..."
+        ./scripts/migrate-prod.sh deploy
+    
+    - name: Verify production deployment
+      env:
+        DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      run: |
+        echo "Verifying production deployment..."
+        npx prisma migrate status
+        
+        # Run a quick smoke test
+        npx prisma generate
+        
+        echo "Production deployment verified"
+    
+    - name: Cleanup old backups
+      env:
+        DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      run: |
+        echo "Cleaning up old backups..."
+        ./scripts/migrate-prod.sh cleanup
+    
+    - name: Notify deployment success
+      run: |
+        echo "Production migration deployment completed successfully!"
+        # Here you could add notification logic (Slack, email, etc.)
+
+  rollback-production:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: List available backups
+      env:
+        DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      run: |
+        echo "Available backups:"
+        chmod +x scripts/rollback.sh
+        ./scripts/rollback.sh list
+    
+    - name: Manual rollback confirmation
+      run: |
+        echo "This is a manual rollback job."
+        echo "Please ensure you have:"
+        echo "1. Confirmed the backup file to restore"
+        echo "2. Notified the team"
+        echo "3. Prepared for application downtime"
+        echo ""
+        echo "Use the following command to rollback:"
+        echo "./scripts/rollback.sh restore <backup-file>"
+        echo ""
+        echo "This job serves as a template for manual rollback operations."

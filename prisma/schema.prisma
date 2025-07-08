@@ -1,0 +1,779 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ========== User Management Models ==========
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  
+  // Profile fields
+  name          String?
+  firstName     String?
+  lastName      String?
+  avatar        String?   // URL to profile picture
+  bio           String?   // User biography
+  company       String?   // Company/organization
+  location      String?   // Geographic location
+  website       String?   // Personal/company website
+  timezone      String?   // User timezone preference
+  
+  // Account status
+  role          UserRole  @default(VIEWER)
+  isActive      Boolean   @default(true)
+  emailVerified Boolean   @default(false)
+  
+  // Email preferences
+  emailOnPipelineComplete Boolean @default(true)
+  emailOnPipelineError    Boolean @default(true)
+  emailOnWeeklyReport     Boolean @default(false)
+  
+  // Account limits
+  maxPipelines  Int       @default(10)
+  maxExecutionsPerMonth Int @default(100)
+  
+  // Two-factor authentication
+  twoFactorEnabled      Boolean   @default(false)
+  twoFactorSecret       String?   // Encrypted 2FA secret
+  
+  // Password reset
+  passwordResetToken    String?
+  passwordResetExpires  DateTime?
+  
+  // Email verification
+  emailVerificationToken String?
+  emailVerificationExpires DateTime?
+  
+  // Soft delete support
+  deletedAt     DateTime?
+  deletedBy     String?   // ID of user who deleted this account
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+  
+  // Relations
+  sessions      Session[]
+  apiKeys       ApiKey[]
+  pipelines     Pipeline[]
+  executions    PipelineRun[]
+  files         FileUpload[]
+  
+  @@index([email])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model Session {
+  id            String   @id @default(cuid())
+  userId        String
+  token         String   @unique
+  refreshToken  String   @unique
+  expiresAt     DateTime
+  
+  // Device and location info
+  userAgent     String?
+  ipAddress     String?
+  deviceType    String?  // mobile, desktop, tablet
+  browser       String?  // Chrome, Firefox, Safari, etc.
+  os            String?  // Windows, macOS, Linux, iOS, Android
+  country       String?  // Detected from IP
+  city          String?  // Detected from IP
+  
+  // Security flags
+  isRevoked     Boolean  @default(false)
+  revokedAt     DateTime?
+  revokedReason String?  // suspicious_activity, user_logout, admin_action
+  
+  // Session metadata
+  sessionType   SessionType @default(WEB)
+  fingerprint   String?  // Browser fingerprint for security
+  
+  // Soft delete support
+  deletedAt     DateTime?
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastUsedAt    DateTime @default(now())
+  
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([token])
+  @@index([refreshToken])
+  @@index([expiresAt])
+  @@index([deletedAt])
+  @@map("sessions")
+}
+
+model ApiKey {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  description   String?  // Purpose of this API key
+  key           String   @unique
+  keyPrefix     String   // First 8 characters of key for display
+  
+  // Permissions and scoping
+  permissions   String   // JSON array of permissions
+  scopes        String?  // JSON array of scopes (read, write, admin)
+  allowedIps    String?  // JSON array of allowed IP addresses
+  allowedDomains String? // JSON array of allowed domains
+  
+  // Rate limiting
+  rateLimit     Int?     // Requests per hour
+  rateLimitWindow String? // Time window (hour, day, month)
+  
+  // Usage tracking
+  totalRequests Int      @default(0)
+  lastUsedAt    DateTime?
+  lastUsedIp    String?
+  
+  // Expiration and status
+  expiresAt     DateTime?
+  isActive      Boolean  @default(true)
+  isRevoked     Boolean  @default(false)
+  revokedAt     DateTime?
+  revokedReason String?
+  
+  // Soft delete support
+  deletedAt     DateTime?
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([key])
+  @@index([keyPrefix])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("api_keys")
+}
+
+// ========== Pipeline Management Models ==========
+
+model Pipeline {
+  id            String         @id @default(cuid())
+  userId        String
+  name          String
+  description   String?
+  status        PipelineStatus @default(DRAFT)
+  isPublic      Boolean        @default(false)
+  
+  // JSON fields for flexible schema
+  configuration String         // JSON: nodes, connections, settings
+  metadata      String?        // JSON: tags, category, custom props
+  
+  // Versioning
+  version       Int            @default(1)
+  parentId      String?        // For cloned pipelines
+  
+  // Soft delete support
+  deletedAt     DateTime?
+  deletedBy     String?        // ID of user who deleted this pipeline
+  
+  // Timestamps
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  publishedAt   DateTime?
+  archivedAt    DateTime?
+  
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions      PipelineVersion[]
+  runs          PipelineRun[]
+  templates     PipelineTemplate[]
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("pipelines")
+}
+
+model PipelineVersion {
+  id            String    @id @default(cuid())
+  pipelineId    String
+  version       Int
+  configuration String    // JSON snapshot of pipeline at this version
+  changelog     String?
+  createdBy     String
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  
+  // Relations
+  pipeline      Pipeline  @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  
+  @@unique([pipelineId, version])
+  @@index([pipelineId])
+  @@map("pipeline_versions")
+}
+
+model PipelineTemplate {
+  id            String   @id @default(cuid())
+  pipelineId    String?
+  name          String
+  description   String?
+  category      String
+  configuration String   // JSON: template configuration
+  parameters    String   // JSON: template parameters schema
+  isPublic      Boolean  @default(false)
+  usageCount    Int      @default(0)
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  pipeline      Pipeline? @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
+  
+  @@index([category])
+  @@index([isPublic])
+  @@map("pipeline_templates")
+}
+
+// ========== Execution Management Models ==========
+
+model PipelineRun {
+  id            String          @id @default(cuid())
+  pipelineId    String
+  userId        String
+  status        ExecutionStatus @default(QUEUED)
+  
+  // Execution details
+  inputs        String?         // JSON: input parameters
+  outputs       String?         // JSON: final outputs
+  configuration String          // JSON: pipeline config at execution time
+  context       String?         // JSON: execution context/variables
+  
+  // Metrics and performance
+  duration      Int?            // milliseconds
+  tokensUsed    Int?
+  estimatedCost Float?
+  actualCost    Float?
+  memoryUsage   Int?            // bytes peak memory usage
+  cpuTime       Int?            // milliseconds of CPU time
+  
+  // Error handling and retry
+  error         String?         // JSON: detailed error information
+  retryCount    Int             @default(0)
+  maxRetries    Int             @default(3)
+  retryStrategy String?         // JSON: retry configuration
+  failureReason String?         // High-level failure category
+  
+  // Execution tracking
+  progress      Float           @default(0.0) // 0.0 to 1.0
+  currentTaskId String?         // Currently executing task
+  totalTasks    Int?            // Total number of tasks in pipeline
+  completedTasks Int           @default(0)
+  
+  // Scheduling and priority
+  priority      Int             @default(0)
+  scheduledFor  DateTime?
+  timeoutAt     DateTime?       // When execution should timeout
+  
+  // Execution environment
+  executorId    String?         // Worker/executor that ran this
+  environment   String?         // JSON: execution environment info
+  version       String?         // Pipeline version used for execution
+  
+  // Timestamps
+  queuedAt      DateTime        @default(now())
+  startedAt     DateTime?
+  completedAt   DateTime?
+  lastUpdateAt  DateTime        @default(now()) @updatedAt
+  
+  // Relations
+  pipeline      Pipeline        @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks         TaskExecution[]
+  logs          ExecutionLog[]
+  artifacts     Artifact[]
+  fileReferences FileReference[]
+  
+  @@index([pipelineId])
+  @@index([userId])
+  @@index([status])
+  @@index([queuedAt])
+  @@index([startedAt])
+  @@index([priority])
+  @@index([executorId])
+  @@map("pipeline_runs")
+}
+
+model TaskExecution {
+  id            String          @id @default(cuid())
+  runId         String
+  nodeId        String          // ID of the node in pipeline configuration
+  nodeName      String
+  nodeType      String
+  status        ExecutionStatus @default(PENDING)
+  
+  // Execution details
+  inputs        String?         // JSON: node inputs
+  outputs       String?         // JSON: node outputs
+  configuration String          // JSON: node configuration at execution time
+  
+  // Execution order and dependencies
+  executionOrder Int            // Order in which tasks should execute
+  dependencies  String?         // JSON: array of task IDs this depends on
+  dependents    String?         // JSON: array of task IDs that depend on this
+  
+  // Metrics and performance
+  duration      Int?            // milliseconds
+  tokensUsed    Int?
+  cost          Float?
+  memoryUsage   Int?            // bytes peak memory usage
+  cpuTime       Int?            // milliseconds of CPU time
+  
+  // Error handling and retry
+  error         String?         // JSON: detailed error information
+  retryCount    Int             @default(0)
+  maxRetries    Int             @default(3)
+  retryDelay    Int?            // milliseconds to wait before retry
+  failureReason String?         // High-level failure category
+  
+  // Progress and state
+  progress      Float           @default(0.0) // 0.0 to 1.0 for long-running tasks
+  state         String?         // JSON: task-specific state information
+  checkpoint    String?         // JSON: checkpoint data for resuming
+  
+  // Execution environment
+  executorId    String?         // Worker/executor that ran this task
+  workerId      String?         // Specific worker instance
+  
+  // Timing and scheduling
+  queuedAt      DateTime        @default(now())
+  startedAt     DateTime?
+  completedAt   DateTime?
+  timeoutAt     DateTime?       // When this task should timeout
+  lastUpdateAt  DateTime        @default(now()) @updatedAt
+  
+  // Cache and optimization
+  cacheKey      String?         // Key for caching task results
+  cached        Boolean         @default(false) // Whether result was from cache
+  
+  // Relations
+  run           PipelineRun     @relation(fields: [runId], references: [id], onDelete: Cascade)
+  logs          ExecutionLog[]
+  artifacts     Artifact[]
+  fileReferences FileReference[]
+  
+  @@index([runId])
+  @@index([status])
+  @@index([nodeId])
+  @@index([executionOrder])
+  @@index([queuedAt])
+  @@index([executorId])
+  @@index([cacheKey])
+  @@map("task_executions")
+}
+
+model ExecutionLog {
+  id            String         @id @default(cuid())
+  runId         String
+  taskId        String?
+  level         LogLevel
+  message       String
+  metadata      String?        // JSON: additional log data
+  
+  // Structured logging
+  category      String?        // Category of log (system, user, error, debug)
+  source        String?        // Source component/module that generated log
+  correlationId String?        // For tracing across systems
+  
+  // Streaming and real-time
+  sequenceNumber Int           @default(1) // Sequence number for ordering
+  streamId      String?        // Stream identifier for real-time updates
+  
+  // Error context
+  errorCode     String?        // Machine-readable error code
+  stackTrace    String?        // Full stack trace for errors
+  
+  // Performance tracking
+  duration      Int?           // Duration if this is a timing log
+  memorySnapshot Int?          // Memory usage at time of log
+  
+  // Timestamps
+  timestamp     DateTime       @default(now())
+  
+  // Relations
+  run           PipelineRun    @relation(fields: [runId], references: [id], onDelete: Cascade)
+  task          TaskExecution? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  @@index([runId])
+  @@index([taskId])
+  @@index([timestamp])
+  @@index([level])
+  @@index([category])
+  @@index([sequenceNumber])
+  @@index([correlationId])
+  @@map("execution_logs")
+}
+
+// ========== File Management Models ==========
+
+model FileUpload {
+  id            String      @id @default(cuid())
+  userId        String
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int         // bytes
+  
+  // Storage configuration
+  storageProvider String    @default("local")  // local, s3, gcs, azure
+  storageKey    String      @unique           // Local path or S3 key
+  s3Bucket      String?                       // S3 bucket name
+  s3Key         String?                       // S3 object key
+  s3Region      String?                       // S3 region
+  s3Etag        String?                       // S3 ETag for versioning
+  storageClass  String?                       // S3 storage class (STANDARD, IA, GLACIER, etc.)
+  
+  // File integrity and metadata
+  checksum      String?     // MD5 or SHA256 hash
+  checksumType  String?     // md5, sha256, sha512
+  encoding      String?     // File encoding if text
+  contentType   String?     // Full content type with charset
+  
+  // Enhanced metadata
+  metadata      String?     // JSON: custom metadata
+  dimensions    String?     // JSON: { width, height } for images/videos
+  duration      Float?      // Duration in seconds for audio/video
+  quality       String?     // Quality settings for media files
+  compression   String?     // Compression algorithm used
+  
+  // Processing and status
+  status        FileStatus  @default(PENDING)
+  processingError String?
+  processingStage String?   // current, thumbnail, analysis, etc.
+  processingProgress Float? @default(0.0) // 0.0 to 1.0
+  
+  // Access control and security
+  isPublic      Boolean     @default(false)
+  accessLevel   String?     // public, private, restricted
+  encryptionKey String?     // Encryption key reference
+  isEncrypted   Boolean     @default(false)
+  
+  // Lifecycle management
+  uploadedAt    DateTime    @default(now())
+  expiresAt     DateTime?
+  lastAccessedAt DateTime?
+  downloadCount Int         @default(0)
+  
+  // Virus scanning and security
+  virusScanned  Boolean     @default(false)
+  virusScanResult String?   // clean, infected, error
+  virusScanAt   DateTime?
+  
+  // Soft delete support
+  deletedAt     DateTime?
+  deletedBy     String?     // ID of user who deleted this file
+  
+  // Relations
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artifacts     Artifact[]
+  thumbnails    Thumbnail[]
+  references    FileReference[]
+  
+  @@index([userId])
+  @@index([storageKey])
+  @@index([s3Bucket, s3Key])
+  @@index([uploadedAt])
+  @@index([status])
+  @@index([mimeType])
+  @@index([checksum])
+  @@index([deletedAt])
+  @@index([isPublic])
+  @@index([expiresAt])
+  @@map("file_uploads")
+}
+
+model Artifact {
+  id            String       @id @default(cuid())
+  runId         String
+  taskId        String?      // Optional task execution ID
+  fileId        String?
+  type          ArtifactType
+  name          String
+  description   String?
+  
+  // Versioning
+  version       Int          @default(1)
+  parentId      String?      // Previous version of this artifact
+  isLatest      Boolean      @default(true)
+  versionNotes  String?      // Change notes for this version
+  
+  // Storage information
+  storageKey    String       @unique
+  size          Int          // bytes
+  mimeType      String?
+  checksum      String?      // File integrity verification
+  checksumType  String?      // md5, sha256, sha512
+  
+  // S3 specific fields
+  s3Bucket      String?      // S3 bucket name
+  s3Key         String?      // S3 object key
+  s3Region      String?      // S3 region
+  s3Etag        String?      // S3 ETag for versioning
+  s3VersionId   String?      // S3 version ID
+  
+  // Content metadata
+  metadata      String?      // JSON: type-specific metadata
+  dimensions    String?      // JSON: { width, height } for images/videos
+  duration      Float?       // Duration in seconds for audio/video
+  quality       String?      // Quality settings for media files
+  format        String?      // File format details
+  
+  // Classification and organization
+  category      String?      // input, output, intermediate, debug, etc.
+  tags          String?      // JSON: array of tags
+  importance    String?      // critical, important, normal, debug
+  
+  // Lifecycle and retention
+  status        ArtifactStatus @default(ACTIVE)
+  expiresAt     DateTime?
+  retentionDays Int?         // Days to retain this artifact
+  
+  // Access control
+  isPublic      Boolean      @default(false)
+  accessLevel   String?      // public, private, restricted
+  
+  // Usage tracking
+  downloadCount Int          @default(0)
+  lastAccessedAt DateTime?
+  
+  // Pipeline context
+  nodeId        String?      // ID of the node that generated this artifact
+  nodeName      String?      // Name of the node that generated this artifact
+  nodeType      String?      // Type of the node that generated this artifact
+  pipelineVersion String?    // Pipeline version when artifact was created
+  
+  // Processing information
+  processingTime Int?        // Time taken to generate this artifact (ms)
+  processingCost Float?      // Cost to generate this artifact
+  
+  // Soft delete support
+  deletedAt     DateTime?
+  deletedBy     String?      // ID of user who deleted this artifact
+  
+  // Timestamps
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  // Relations
+  run           PipelineRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  task          TaskExecution? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  file          FileUpload?  @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  parent        Artifact?    @relation("ArtifactVersions", fields: [parentId], references: [id], onDelete: SetNull)
+  versions      Artifact[]   @relation("ArtifactVersions")
+  references    FileReference[]
+  
+  @@index([runId])
+  @@index([taskId])
+  @@index([type])
+  @@index([version])
+  @@index([parentId])
+  @@index([isLatest])
+  @@index([status])
+  @@index([category])
+  @@index([nodeId])
+  @@index([createdAt])
+  @@index([checksum])
+  @@index([s3Bucket, s3Key])
+  @@index([deletedAt])
+  @@index([expiresAt])
+  @@unique([runId, name, version])
+  @@map("artifacts")
+}
+
+model Thumbnail {
+  id            String      @id @default(cuid())
+  fileId        String
+  size          String      // e.g., "150x150", "300x300"
+  storageKey    String      @unique
+  
+  // Timestamps
+  createdAt     DateTime    @default(now())
+  
+  // Relations
+  file          FileUpload  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  
+  @@index([fileId])
+  @@map("thumbnails")
+}
+
+model FileReference {
+  id            String        @id @default(cuid())
+  fileId        String?       // Reference to FileUpload
+  artifactId    String?       // Reference to Artifact
+  
+  // Execution context
+  runId         String        // Pipeline run this file was used in
+  taskId        String?       // Specific task that used this file
+  
+  // Reference details
+  referenceType FileReferenceType
+  purpose       String?       // input, output, intermediate, config, etc.
+  contextPath   String?       // Path/location within the execution context
+  
+  // Usage metadata
+  metadata      String?       // JSON: reference-specific metadata
+  usage         String?       // JSON: how the file was used
+  
+  // Processing information
+  accessedAt    DateTime?     // When the file was accessed
+  modifiedAt    DateTime?     // When the file was modified (if applicable)
+  processingTime Int?         // Time spent processing this file (ms)
+  
+  // Validation and integrity
+  checksumAtUse String?       // Checksum when file was used
+  sizeAtUse     Int?          // File size when used
+  
+  // Lifecycle
+  isActive      Boolean       @default(true)
+  notes         String?       // Additional notes about this reference
+  
+  // Timestamps
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  // Relations
+  file          FileUpload?   @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  artifact      Artifact?     @relation(fields: [artifactId], references: [id], onDelete: SetNull)
+  run           PipelineRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
+  task          TaskExecution? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  
+  @@index([fileId])
+  @@index([artifactId])
+  @@index([runId])
+  @@index([taskId])
+  @@index([referenceType])
+  @@index([purpose])
+  @@index([accessedAt])
+  @@index([isActive])
+  @@map("file_references")
+}
+
+// ========== Provider Credentials ==========
+
+model ProviderCredential {
+  id            String      @id @default(cuid())
+  name          String
+  provider      String      // openai, stability, replicate, etc.
+  credentials   String      // Encrypted JSON
+  isActive      Boolean     @default(true)
+  isDefault     Boolean     @default(false)
+  
+  // Usage tracking
+  lastUsedAt    DateTime?
+  usageCount    Int         @default(0)
+  
+  // Soft delete support
+  deletedAt     DateTime?
+  
+  // Timestamps
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  @@unique([provider, isDefault])
+  @@index([provider])
+  @@index([deletedAt])
+  @@map("provider_credentials")
+}
+
+// ========== Enums ==========
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum PipelineStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ExecutionStatus {
+  QUEUED
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+}
+
+enum FileStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum ArtifactType {
+  IMAGE
+  VIDEO
+  AUDIO
+  TEXT
+  JSON
+  CSV
+  XML
+  PDF
+  ARCHIVE
+  BINARY
+  OTHER
+}
+
+enum ArtifactStatus {
+  ACTIVE
+  ARCHIVED
+  EXPIRED
+  DELETED
+  CORRUPTED
+}
+
+enum FileReferenceType {
+  INPUT
+  OUTPUT
+  INTERMEDIATE
+  CONFIG
+  TEMPLATE
+  CACHE
+  BACKUP
+  DEBUG
+}
+
+enum SessionType {
+  WEB
+  MOBILE
+  API
+  CLI
+  INTEGRATION
+}

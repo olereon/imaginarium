@@ -219,6 +219,8 @@ docker-compose.*.yml
 *.sqlite
 *.sqlite3
 *.db
+data/
+prisma/migrations/
 
 # Redis dump
 dump.rdb

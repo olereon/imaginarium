@@ -1,0 +1,702 @@
+[
+  {
+    "id": "template-webhook-processor",
+    "name": "Webhook Event Processor",
+    "description": "Process incoming webhook events with conditional logic and multiple actions",
+    "category": "automation",
+    "isPublic": true,
+    "configuration": {
+      "nodes": [
+        {
+          "id": "trigger-{{uuid}}",
+          "type": "webhook-trigger",
+          "position": { "x": 100, "y": 100 },
+          "config": {
+            "method": "{{httpMethod}}",
+            "path": "{{webhookPath}}",
+            "authentication": "{{authType}}",
+            "rateLimit": "{{rateLimit}}"
+          }
+        },
+        {
+          "id": "validator-{{uuid}}",
+          "type": "json-validator",
+          "position": { "x": 300, "y": 100 },
+          "config": {
+            "schema": "{{inputSchema}}",
+            "strictMode": "{{strictValidation}}"
+          }
+        },
+        {
+          "id": "condition-{{uuid}}",
+          "type": "condition",
+          "position": { "x": 500, "y": 100 },
+          "config": {
+            "expression": "{{conditionExpression}}",
+            "trueLabel": "{{trueLabel}}",
+            "falseLabel": "{{falseLabel}}"
+          }
+        },
+        {
+          "id": "action-high-{{uuid}}",
+          "type": "{{highPriorityAction}}",
+          "position": { "x": 700, "y": 50 },
+          "config": {
+            "parameters": "{{highPriorityParams}}"
+          }
+        },
+        {
+          "id": "action-normal-{{uuid}}",
+          "type": "{{normalPriorityAction}}",
+          "position": { "x": 700, "y": 150 },
+          "config": {
+            "parameters": "{{normalPriorityParams}}"
+          }
+        },
+        {
+          "id": "logger-{{uuid}}",
+          "type": "event-logger",
+          "position": { "x": 900, "y": 100 },
+          "config": {
+            "logLevel": "{{logLevel}}",
+            "includePayload": "{{includePayload}}"
+          }
+        },
+        {
+          "id": "response-{{uuid}}",
+          "type": "http-response",
+          "position": { "x": 1100, "y": 100 },
+          "config": {
+            "statusCode": "{{responseStatus}}",
+            "headers": "{{responseHeaders}}",
+            "format": "{{responseFormat}}"
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": "conn-{{uuid}}-1",
+          "source": "trigger-{{uuid}}",
+          "target": "validator-{{uuid}}",
+          "sourceHandle": "payload",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-2",
+          "source": "validator-{{uuid}}",
+          "target": "condition-{{uuid}}",
+          "sourceHandle": "validated",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-3",
+          "source": "condition-{{uuid}}",
+          "target": "action-high-{{uuid}}",
+          "sourceHandle": "true",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-4",
+          "source": "condition-{{uuid}}",
+          "target": "action-normal-{{uuid}}",
+          "sourceHandle": "false",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-5",
+          "source": "action-high-{{uuid}}",
+          "target": "logger-{{uuid}}",
+          "sourceHandle": "result",
+          "targetHandle": "event"
+        },
+        {
+          "id": "conn-{{uuid}}-6",
+          "source": "action-normal-{{uuid}}",
+          "target": "logger-{{uuid}}",
+          "sourceHandle": "result",
+          "targetHandle": "event"
+        },
+        {
+          "id": "conn-{{uuid}}-7",
+          "source": "logger-{{uuid}}",
+          "target": "response-{{uuid}}",
+          "sourceHandle": "logged",
+          "targetHandle": "input"
+        }
+      ]
+    },
+    "parameters": {
+      "httpMethod": {
+        "type": "select",
+        "options": ["POST", "PUT", "PATCH", "DELETE"],
+        "default": "POST",
+        "description": "HTTP method"
+      },
+      "webhookPath": {
+        "type": "string",
+        "default": "/webhook",
+        "description": "Webhook endpoint path"
+      },
+      "authType": {
+        "type": "select",
+        "options": ["none", "api-key", "bearer", "basic", "signature"],
+        "default": "api-key",
+        "description": "Authentication type"
+      },
+      "rateLimit": {
+        "type": "number",
+        "default": 100,
+        "description": "Rate limit (requests per minute)"
+      },
+      "inputSchema": {
+        "type": "json",
+        "default": "{\"type\": \"object\", \"properties\": {\"event\": {\"type\": \"string\"}, \"priority\": {\"type\": \"string\"}}}",
+        "description": "Input validation schema"
+      },
+      "strictValidation": {
+        "type": "boolean",
+        "default": true,
+        "description": "Enable strict validation"
+      },
+      "conditionExpression": {
+        "type": "string",
+        "default": "input.priority === 'high'",
+        "description": "Condition expression"
+      },
+      "trueLabel": {
+        "type": "string",
+        "default": "High Priority",
+        "description": "True condition label"
+      },
+      "falseLabel": {
+        "type": "string",
+        "default": "Normal Priority",
+        "description": "False condition label"
+      },
+      "highPriorityAction": {
+        "type": "select",
+        "options": ["email-send", "slack-notification", "sms-send", "webhook-call", "database-insert"],
+        "default": "email-send",
+        "description": "High priority action"
+      },
+      "normalPriorityAction": {
+        "type": "select",
+        "options": ["database-insert", "file-write", "queue-add", "webhook-call"],
+        "default": "database-insert",
+        "description": "Normal priority action"
+      },
+      "highPriorityParams": {
+        "type": "json",
+        "default": "{\"to\": \"admin@company.com\", \"subject\": \"High Priority Alert\"}",
+        "description": "High priority action parameters"
+      },
+      "normalPriorityParams": {
+        "type": "json",
+        "default": "{\"table\": \"events\", \"data\": \"{{payload}}\"}",
+        "description": "Normal priority action parameters"
+      },
+      "logLevel": {
+        "type": "select",
+        "options": ["DEBUG", "INFO", "WARN", "ERROR"],
+        "default": "INFO",
+        "description": "Log level"
+      },
+      "includePayload": {
+        "type": "boolean",
+        "default": true,
+        "description": "Include payload in logs"
+      },
+      "responseStatus": {
+        "type": "number",
+        "default": 200,
+        "description": "HTTP response status"
+      },
+      "responseHeaders": {
+        "type": "json",
+        "default": "{\"Content-Type\": \"application/json\"}",
+        "description": "Response headers"
+      },
+      "responseFormat": {
+        "type": "select",
+        "options": ["json", "xml", "text", "html"],
+        "default": "json",
+        "description": "Response format"
+      }
+    },
+    "usageCount": 0,
+    "tags": ["webhook", "automation", "event-processing", "conditional"],
+    "difficulty": "intermediate",
+    "estimatedTime": "200ms - 2 seconds",
+    "cost": "low"
+  },
+  {
+    "id": "template-email-campaign",
+    "name": "Automated Email Campaign",
+    "description": "Send personalized email campaigns with tracking and analytics",
+    "category": "automation",
+    "isPublic": true,
+    "configuration": {
+      "nodes": [
+        {
+          "id": "scheduler-{{uuid}}",
+          "type": "scheduler",
+          "position": { "x": 100, "y": 100 },
+          "config": {
+            "schedule": "{{schedule}}",
+            "timezone": "{{timezone}}",
+            "enabled": true
+          }
+        },
+        {
+          "id": "contacts-{{uuid}}",
+          "type": "database-query",
+          "position": { "x": 300, "y": 100 },
+          "config": {
+            "query": "{{contactsQuery}}",
+            "connection": "{{dbConnection}}"
+          }
+        },
+        {
+          "id": "filter-{{uuid}}",
+          "type": "data-filter",
+          "position": { "x": 500, "y": 100 },
+          "config": {
+            "conditions": "{{filterConditions}}",
+            "operator": "{{filterOperator}}"
+          }
+        },
+        {
+          "id": "personalize-{{uuid}}",
+          "type": "{{aiProvider}}-text",
+          "position": { "x": 700, "y": 100 },
+          "config": {
+            "model": "{{model}}",
+            "task": "personalize-email",
+            "temperature": 0.5,
+            "maxTokens": 1000
+          }
+        },
+        {
+          "id": "template-{{uuid}}",
+          "type": "email-template",
+          "position": { "x": 900, "y": 100 },
+          "config": {
+            "template": "{{emailTemplate}}",
+            "subject": "{{emailSubject}}",
+            "layout": "{{emailLayout}}"
+          }
+        },
+        {
+          "id": "send-{{uuid}}",
+          "type": "email-send",
+          "position": { "x": 1100, "y": 100 },
+          "config": {
+            "provider": "{{emailProvider}}",
+            "fromEmail": "{{fromEmail}}",
+            "fromName": "{{fromName}}",
+            "replyTo": "{{replyTo}}",
+            "trackOpens": "{{trackOpens}}",
+            "trackClicks": "{{trackClicks}}"
+          }
+        },
+        {
+          "id": "analytics-{{uuid}}",
+          "type": "email-analytics",
+          "position": { "x": 1300, "y": 100 },
+          "config": {
+            "trackBounces": true,
+            "trackUnsubscribes": true,
+            "generateReport": "{{generateReport}}"
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": "conn-{{uuid}}-1",
+          "source": "scheduler-{{uuid}}",
+          "target": "contacts-{{uuid}}",
+          "sourceHandle": "trigger",
+          "targetHandle": "trigger"
+        },
+        {
+          "id": "conn-{{uuid}}-2",
+          "source": "contacts-{{uuid}}",
+          "target": "filter-{{uuid}}",
+          "sourceHandle": "data",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-3",
+          "source": "filter-{{uuid}}",
+          "target": "personalize-{{uuid}}",
+          "sourceHandle": "filtered",
+          "targetHandle": "contacts"
+        },
+        {
+          "id": "conn-{{uuid}}-4",
+          "source": "personalize-{{uuid}}",
+          "target": "template-{{uuid}}",
+          "sourceHandle": "personalized",
+          "targetHandle": "content"
+        },
+        {
+          "id": "conn-{{uuid}}-5",
+          "source": "template-{{uuid}}",
+          "target": "send-{{uuid}}",
+          "sourceHandle": "emails",
+          "targetHandle": "emails"
+        },
+        {
+          "id": "conn-{{uuid}}-6",
+          "source": "send-{{uuid}}",
+          "target": "analytics-{{uuid}}",
+          "sourceHandle": "sent",
+          "targetHandle": "emails"
+        }
+      ]
+    },
+    "parameters": {
+      "schedule": {
+        "type": "string",
+        "default": "0 9 * * 1",
+        "description": "Cron schedule (every Monday at 9 AM)"
+      },
+      "timezone": {
+        "type": "select",
+        "options": ["UTC", "America/New_York", "America/Los_Angeles", "Europe/London", "Asia/Tokyo"],
+        "default": "UTC",
+        "description": "Timezone"
+      },
+      "contactsQuery": {
+        "type": "string",
+        "default": "SELECT * FROM contacts WHERE active = true",
+        "description": "Database query for contacts"
+      },
+      "dbConnection": {
+        "type": "string",
+        "default": "default",
+        "description": "Database connection"
+      },
+      "filterConditions": {
+        "type": "json",
+        "default": "[{\"field\": \"subscribed\", \"operator\": \"equals\", \"value\": true}]",
+        "description": "Filter conditions"
+      },
+      "filterOperator": {
+        "type": "select",
+        "options": ["AND", "OR"],
+        "default": "AND",
+        "description": "Filter operator"
+      },
+      "aiProvider": {
+        "type": "select",
+        "options": ["openai", "anthropic", "google"],
+        "default": "openai",
+        "description": "AI provider"
+      },
+      "model": {
+        "type": "string",
+        "default": "gpt-4",
+        "description": "AI model"
+      },
+      "emailTemplate": {
+        "type": "select",
+        "options": ["newsletter", "promotional", "transactional", "welcome"],
+        "default": "newsletter",
+        "description": "Email template"
+      },
+      "emailSubject": {
+        "type": "string",
+        "default": "{{personalized_subject}}",
+        "description": "Email subject"
+      },
+      "emailLayout": {
+        "type": "select",
+        "options": ["modern", "classic", "minimal", "branded"],
+        "default": "modern",
+        "description": "Email layout"
+      },
+      "emailProvider": {
+        "type": "select",
+        "options": ["sendgrid", "mailgun", "ses", "postmark"],
+        "default": "sendgrid",
+        "description": "Email provider"
+      },
+      "fromEmail": {
+        "type": "string",
+        "default": "noreply@company.com",
+        "description": "From email address"
+      },
+      "fromName": {
+        "type": "string",
+        "default": "Company Newsletter",
+        "description": "From name"
+      },
+      "replyTo": {
+        "type": "string",
+        "default": "support@company.com",
+        "description": "Reply-to email"
+      },
+      "trackOpens": {
+        "type": "boolean",
+        "default": true,
+        "description": "Track email opens"
+      },
+      "trackClicks": {
+        "type": "boolean",
+        "default": true,
+        "description": "Track link clicks"
+      },
+      "generateReport": {
+        "type": "boolean",
+        "default": true,
+        "description": "Generate analytics report"
+      }
+    },
+    "usageCount": 0,
+    "tags": ["email", "campaign", "automation", "marketing", "personalization"],
+    "difficulty": "advanced",
+    "estimatedTime": "5-15 minutes",
+    "cost": "medium"
+  },
+  {
+    "id": "template-file-processor",
+    "name": "Automated File Processor",
+    "description": "Process uploaded files with validation, transformation, and storage",
+    "category": "automation",
+    "isPublic": true,
+    "configuration": {
+      "nodes": [
+        {
+          "id": "watcher-{{uuid}}",
+          "type": "file-watcher",
+          "position": { "x": 100, "y": 100 },
+          "config": {
+            "watchPath": "{{watchPath}}",
+            "fileTypes": ["{{fileTypes}}"],
+            "recursive": "{{recursive}}"
+          }
+        },
+        {
+          "id": "validator-{{uuid}}",
+          "type": "file-validator",
+          "position": { "x": 300, "y": 100 },
+          "config": {
+            "maxSize": "{{maxFileSize}}",
+            "allowedTypes": ["{{allowedTypes}}"],
+            "scanVirus": "{{scanVirus}}"
+          }
+        },
+        {
+          "id": "metadata-{{uuid}}",
+          "type": "metadata-extractor",
+          "position": { "x": 500, "y": 100 },
+          "config": {
+            "extractExif": "{{extractExif}}",
+            "extractText": "{{extractText}}",
+            "generateThumbnail": "{{generateThumbnail}}"
+          }
+        },
+        {
+          "id": "transform-{{uuid}}",
+          "type": "file-transformer",
+          "position": { "x": 700, "y": 100 },
+          "config": {
+            "operations": ["{{transformOperations}}"],
+            "outputFormat": "{{outputFormat}}",
+            "quality": "{{quality}}"
+          }
+        },
+        {
+          "id": "storage-{{uuid}}",
+          "type": "cloud-storage",
+          "position": { "x": 900, "y": 100 },
+          "config": {
+            "provider": "{{storageProvider}}",
+            "bucket": "{{storageBucket}}",
+            "path": "{{storagePath}}",
+            "public": "{{makePublic}}"
+          }
+        },
+        {
+          "id": "database-{{uuid}}",
+          "type": "database-insert",
+          "position": { "x": 1100, "y": 100 },
+          "config": {
+            "table": "{{databaseTable}}",
+            "mapping": "{{fieldMapping}}"
+          }
+        },
+        {
+          "id": "notification-{{uuid}}",
+          "type": "notification",
+          "position": { "x": 1300, "y": 100 },
+          "config": {
+            "channels": ["{{notificationChannels}}"],
+            "template": "{{notificationTemplate}}"
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": "conn-{{uuid}}-1",
+          "source": "watcher-{{uuid}}",
+          "target": "validator-{{uuid}}",
+          "sourceHandle": "file",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-2",
+          "source": "validator-{{uuid}}",
+          "target": "metadata-{{uuid}}",
+          "sourceHandle": "validated",
+          "targetHandle": "file"
+        },
+        {
+          "id": "conn-{{uuid}}-3",
+          "source": "metadata-{{uuid}}",
+          "target": "transform-{{uuid}}",
+          "sourceHandle": "enriched",
+          "targetHandle": "file"
+        },
+        {
+          "id": "conn-{{uuid}}-4",
+          "source": "transform-{{uuid}}",
+          "target": "storage-{{uuid}}",
+          "sourceHandle": "transformed",
+          "targetHandle": "file"
+        },
+        {
+          "id": "conn-{{uuid}}-5",
+          "source": "storage-{{uuid}}",
+          "target": "database-{{uuid}}",
+          "sourceHandle": "stored",
+          "targetHandle": "data"
+        },
+        {
+          "id": "conn-{{uuid}}-6",
+          "source": "database-{{uuid}}",
+          "target": "notification-{{uuid}}",
+          "sourceHandle": "inserted",
+          "targetHandle": "data"
+        }
+      ]
+    },
+    "parameters": {
+      "watchPath": {
+        "type": "string",
+        "default": "/uploads",
+        "description": "Path to watch for files"
+      },
+      "fileTypes": {
+        "type": "multiselect",
+        "options": ["jpg", "png", "gif", "pdf", "docx", "xlsx", "mp4", "mp3"],
+        "default": ["jpg", "png", "pdf"],
+        "description": "File types to watch"
+      },
+      "recursive": {
+        "type": "boolean",
+        "default": true,
+        "description": "Watch subdirectories"
+      },
+      "maxFileSize": {
+        "type": "number",
+        "default": 100,
+        "description": "Maximum file size (MB)"
+      },
+      "allowedTypes": {
+        "type": "multiselect",
+        "options": ["image", "document", "video", "audio", "archive"],
+        "default": ["image", "document"],
+        "description": "Allowed file types"
+      },
+      "scanVirus": {
+        "type": "boolean",
+        "default": true,
+        "description": "Scan for viruses"
+      },
+      "extractExif": {
+        "type": "boolean",
+        "default": true,
+        "description": "Extract EXIF data"
+      },
+      "extractText": {
+        "type": "boolean",
+        "default": true,
+        "description": "Extract text content"
+      },
+      "generateThumbnail": {
+        "type": "boolean",
+        "default": true,
+        "description": "Generate thumbnails"
+      },
+      "transformOperations": {
+        "type": "multiselect",
+        "options": ["resize", "compress", "watermark", "convert", "optimize"],
+        "default": ["resize", "compress"],
+        "description": "Transformation operations"
+      },
+      "outputFormat": {
+        "type": "select",
+        "options": ["original", "jpg", "png", "webp", "pdf"],
+        "default": "webp",
+        "description": "Output format"
+      },
+      "quality": {
+        "type": "number",
+        "min": 1,
+        "max": 100,
+        "default": 85,
+        "description": "Output quality"
+      },
+      "storageProvider": {
+        "type": "select",
+        "options": ["s3", "gcs", "azure", "local"],
+        "default": "s3",
+        "description": "Storage provider"
+      },
+      "storageBucket": {
+        "type": "string",
+        "default": "processed-files",
+        "description": "Storage bucket"
+      },
+      "storagePath": {
+        "type": "string",
+        "default": "processed/{{date}}/",
+        "description": "Storage path"
+      },
+      "makePublic": {
+        "type": "boolean",
+        "default": false,
+        "description": "Make files public"
+      },
+      "databaseTable": {
+        "type": "string",
+        "default": "processed_files",
+        "description": "Database table"
+      },
+      "fieldMapping": {
+        "type": "json",
+        "default": "{\"filename\": \"{{filename}}\", \"size\": \"{{size}}\", \"url\": \"{{url}}\"}",
+        "description": "Field mapping"
+      },
+      "notificationChannels": {
+        "type": "multiselect",
+        "options": ["email", "slack", "webhook", "sms"],
+        "default": ["email"],
+        "description": "Notification channels"
+      },
+      "notificationTemplate": {
+        "type": "select",
+        "options": ["success", "error", "detailed"],
+        "default": "success",
+        "description": "Notification template"
+      }
+    },
+    "usageCount": 0,
+    "tags": ["file-processing", "automation", "storage", "metadata"],
+    "difficulty": "advanced",
+    "estimatedTime": "1-5 minutes per file",
+    "cost": "low-medium"
+  }
+]

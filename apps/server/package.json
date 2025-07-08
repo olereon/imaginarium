@@ -16,7 +16,10 @@
     "clean": "rimraf dist .turbo node_modules/.cache",
     "db:generate": "drizzle-kit generate:sqlite",
     "db:push": "drizzle-kit push:sqlite",
-    "db:migrate": "tsx src/db/migrate.ts"
+    "db:migrate": "tsx src/db/migrate.ts",
+    "docs:api": "swagger-jsdoc -d openapi.json -o ../../docs/api-spec.json src/**/*.ts",
+    "docs:serve": "swagger-ui-serve ../../docs/api-spec.json",
+    "docs:generate": "typedoc --out ../../docs/api src/index.ts"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -53,6 +56,9 @@
     "tsx": "^4.6.2",
     "drizzle-kit": "^0.20.7",
     "supertest": "^6.3.3",
-    "@types/supertest": "^6.0.2"
+    "@types/supertest": "^6.0.2",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "typedoc": "^0.25.7"
   }
 }

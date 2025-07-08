@@ -1,0 +1,809 @@
+[
+  {
+    "id": "template-image-enhancer",
+    "name": "AI Image Enhancer",
+    "description": "Enhance images with AI-powered upscaling, denoising, and color correction",
+    "category": "image-processing",
+    "isPublic": true,
+    "configuration": {
+      "nodes": [
+        {
+          "id": "input-{{uuid}}",
+          "type": "image-input",
+          "position": { "x": 100, "y": 100 },
+          "config": {
+            "acceptedFormats": ["{{imageFormats}}"],
+            "maxSize": "{{maxImageSize}}",
+            "required": true
+          }
+        },
+        {
+          "id": "analyzer-{{uuid}}",
+          "type": "image-analyzer",
+          "position": { "x": 300, "y": 100 },
+          "config": {
+            "analyzeQuality": true,
+            "analyzeNoise": true,
+            "analyzeSharpness": true,
+            "analyzeColorBalance": true
+          }
+        },
+        {
+          "id": "upscaler-{{uuid}}",
+          "type": "ai-upscaler",
+          "position": { "x": 500, "y": 50 },
+          "config": {
+            "model": "{{upscalerModel}}",
+            "scaleFactor": "{{scaleFactor}}",
+            "preserveDetails": "{{preserveDetails}}"
+          }
+        },
+        {
+          "id": "denoiser-{{uuid}}",
+          "type": "ai-denoiser",
+          "position": { "x": 500, "y": 150 },
+          "config": {
+            "model": "{{denoiserModel}}",
+            "strength": "{{denoiseStrength}}",
+            "preserveTexture": "{{preserveTexture}}"
+          }
+        },
+        {
+          "id": "color-corrector-{{uuid}}",
+          "type": "ai-color-corrector",
+          "position": { "x": 700, "y": 100 },
+          "config": {
+            "model": "{{colorModel}}",
+            "autoBalance": "{{autoBalance}}",
+            "enhanceContrast": "{{enhanceContrast}}",
+            "enhanceSaturation": "{{enhanceSaturation}}"
+          }
+        },
+        {
+          "id": "sharpener-{{uuid}}",
+          "type": "ai-sharpener",
+          "position": { "x": 900, "y": 100 },
+          "config": {
+            "model": "{{sharpenerModel}}",
+            "strength": "{{sharpenStrength}}",
+            "preserveNatural": "{{preserveNatural}}"
+          }
+        },
+        {
+          "id": "comparator-{{uuid}}",
+          "type": "image-comparator",
+          "position": { "x": 1100, "y": 100 },
+          "config": {
+            "metrics": ["psnr", "ssim", "lpips"],
+            "generateReport": true
+          }
+        },
+        {
+          "id": "output-{{uuid}}",
+          "type": "image-output",
+          "position": { "x": 1300, "y": 100 },
+          "config": {
+            "format": "{{outputFormat}}",
+            "quality": "{{outputQuality}}",
+            "includeComparison": "{{includeComparison}}"
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": "conn-{{uuid}}-1",
+          "source": "input-{{uuid}}",
+          "target": "analyzer-{{uuid}}",
+          "sourceHandle": "image",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-2",
+          "source": "analyzer-{{uuid}}",
+          "target": "upscaler-{{uuid}}",
+          "sourceHandle": "analyzed",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-3",
+          "source": "upscaler-{{uuid}}",
+          "target": "denoiser-{{uuid}}",
+          "sourceHandle": "upscaled",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-4",
+          "source": "denoiser-{{uuid}}",
+          "target": "color-corrector-{{uuid}}",
+          "sourceHandle": "denoised",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-5",
+          "source": "color-corrector-{{uuid}}",
+          "target": "sharpener-{{uuid}}",
+          "sourceHandle": "corrected",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-6",
+          "source": "input-{{uuid}}",
+          "target": "comparator-{{uuid}}",
+          "sourceHandle": "image",
+          "targetHandle": "original"
+        },
+        {
+          "id": "conn-{{uuid}}-7",
+          "source": "sharpener-{{uuid}}",
+          "target": "comparator-{{uuid}}",
+          "sourceHandle": "sharpened",
+          "targetHandle": "enhanced"
+        },
+        {
+          "id": "conn-{{uuid}}-8",
+          "source": "comparator-{{uuid}}",
+          "target": "output-{{uuid}}",
+          "sourceHandle": "result",
+          "targetHandle": "input"
+        }
+      ]
+    },
+    "parameters": {
+      "imageFormats": {
+        "type": "multiselect",
+        "options": ["jpg", "png", "webp", "tiff", "bmp"],
+        "default": ["jpg", "png", "webp"],
+        "description": "Accepted image formats"
+      },
+      "maxImageSize": {
+        "type": "number",
+        "default": 50,
+        "description": "Maximum image size (MB)"
+      },
+      "upscalerModel": {
+        "type": "select",
+        "options": ["esrgan", "real-esrgan", "waifu2x", "srcnn"],
+        "default": "real-esrgan",
+        "description": "Upscaler model"
+      },
+      "scaleFactor": {
+        "type": "select",
+        "options": ["2x", "4x", "8x"],
+        "default": "2x",
+        "description": "Upscale factor"
+      },
+      "preserveDetails": {
+        "type": "boolean",
+        "default": true,
+        "description": "Preserve fine details"
+      },
+      "denoiserModel": {
+        "type": "select",
+        "options": ["dncnn", "ffdnet", "drunet", "scunet"],
+        "default": "drunet",
+        "description": "Denoiser model"
+      },
+      "denoiseStrength": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "default": 50,
+        "description": "Denoise strength"
+      },
+      "preserveTexture": {
+        "type": "boolean",
+        "default": true,
+        "description": "Preserve texture"
+      },
+      "colorModel": {
+        "type": "select",
+        "options": ["auto", "portrait", "landscape", "vintage", "vibrant"],
+        "default": "auto",
+        "description": "Color correction model"
+      },
+      "autoBalance": {
+        "type": "boolean",
+        "default": true,
+        "description": "Auto color balance"
+      },
+      "enhanceContrast": {
+        "type": "boolean",
+        "default": true,
+        "description": "Enhance contrast"
+      },
+      "enhanceSaturation": {
+        "type": "boolean",
+        "default": true,
+        "description": "Enhance saturation"
+      },
+      "sharpenerModel": {
+        "type": "select",
+        "options": ["unsharp-mask", "ai-sharpener", "edge-enhance"],
+        "default": "ai-sharpener",
+        "description": "Sharpener model"
+      },
+      "sharpenStrength": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "default": 30,
+        "description": "Sharpen strength"
+      },
+      "preserveNatural": {
+        "type": "boolean",
+        "default": true,
+        "description": "Preserve natural look"
+      },
+      "outputFormat": {
+        "type": "select",
+        "options": ["png", "jpg", "webp", "tiff"],
+        "default": "png",
+        "description": "Output format"
+      },
+      "outputQuality": {
+        "type": "number",
+        "min": 1,
+        "max": 100,
+        "default": 95,
+        "description": "Output quality"
+      },
+      "includeComparison": {
+        "type": "boolean",
+        "default": true,
+        "description": "Include before/after comparison"
+      }
+    },
+    "usageCount": 0,
+    "tags": ["image", "enhancement", "upscaling", "ai", "quality"],
+    "difficulty": "intermediate",
+    "estimatedTime": "30-120 seconds",
+    "cost": "medium"
+  },
+  {
+    "id": "template-batch-processor",
+    "name": "Batch Image Processor",
+    "description": "Process multiple images with consistent transformations",
+    "category": "image-processing",
+    "isPublic": true,
+    "configuration": {
+      "nodes": [
+        {
+          "id": "input-{{uuid}}",
+          "type": "batch-file-input",
+          "position": { "x": 100, "y": 100 },
+          "config": {
+            "acceptedFormats": ["{{imageFormats}}"],
+            "maxFiles": "{{maxFiles}}",
+            "maxTotalSize": "{{maxTotalSize}}",
+            "required": true
+          }
+        },
+        {
+          "id": "validator-{{uuid}}",
+          "type": "batch-validator",
+          "position": { "x": 300, "y": 100 },
+          "config": {
+            "validateFormat": true,
+            "validateSize": true,
+            "validateCorruption": true,
+            "skipInvalid": "{{skipInvalid}}"
+          }
+        },
+        {
+          "id": "resizer-{{uuid}}",
+          "type": "batch-resizer",
+          "position": { "x": 500, "y": 100 },
+          "config": {
+            "targetWidth": "{{targetWidth}}",
+            "targetHeight": "{{targetHeight}}",
+            "resizeMode": "{{resizeMode}}",
+            "maintainAspectRatio": "{{maintainAspectRatio}}"
+          }
+        },
+        {
+          "id": "optimizer-{{uuid}}",
+          "type": "batch-optimizer",
+          "position": { "x": 700, "y": 100 },
+          "config": {
+            "optimizeSize": "{{optimizeSize}}",
+            "targetQuality": "{{targetQuality}}",
+            "stripMetadata": "{{stripMetadata}}",
+            "progressiveJpeg": "{{progressiveJpeg}}"
+          }
+        },
+        {
+          "id": "watermarker-{{uuid}}",
+          "type": "batch-watermarker",
+          "position": { "x": 900, "y": 100 },
+          "config": {
+            "watermarkText": "{{watermarkText}}",
+            "watermarkImage": "{{watermarkImage}}",
+            "position": "{{watermarkPosition}}",
+            "opacity": "{{watermarkOpacity}}",
+            "enabled": "{{enableWatermark}}"
+          }
+        },
+        {
+          "id": "converter-{{uuid}}",
+          "type": "batch-converter",
+          "position": { "x": 1100, "y": 100 },
+          "config": {
+            "targetFormat": "{{targetFormat}}",
+            "quality": "{{conversionQuality}}",
+            "preserveOriginal": "{{preserveOriginal}}"
+          }
+        },
+        {
+          "id": "output-{{uuid}}",
+          "type": "batch-output",
+          "position": { "x": 1300, "y": 100 },
+          "config": {
+            "outputPath": "{{outputPath}}",
+            "namingPattern": "{{namingPattern}}",
+            "createZip": "{{createZip}}",
+            "generateReport": "{{generateReport}}"
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": "conn-{{uuid}}-1",
+          "source": "input-{{uuid}}",
+          "target": "validator-{{uuid}}",
+          "sourceHandle": "files",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-2",
+          "source": "validator-{{uuid}}",
+          "target": "resizer-{{uuid}}",
+          "sourceHandle": "validated",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-3",
+          "source": "resizer-{{uuid}}",
+          "target": "optimizer-{{uuid}}",
+          "sourceHandle": "resized",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-4",
+          "source": "optimizer-{{uuid}}",
+          "target": "watermarker-{{uuid}}",
+          "sourceHandle": "optimized",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-5",
+          "source": "watermarker-{{uuid}}",
+          "target": "converter-{{uuid}}",
+          "sourceHandle": "watermarked",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-6",
+          "source": "converter-{{uuid}}",
+          "target": "output-{{uuid}}",
+          "sourceHandle": "converted",
+          "targetHandle": "input"
+        }
+      ]
+    },
+    "parameters": {
+      "imageFormats": {
+        "type": "multiselect",
+        "options": ["jpg", "png", "webp", "gif", "bmp", "tiff"],
+        "default": ["jpg", "png", "webp"],
+        "description": "Accepted image formats"
+      },
+      "maxFiles": {
+        "type": "number",
+        "default": 100,
+        "description": "Maximum number of files"
+      },
+      "maxTotalSize": {
+        "type": "number",
+        "default": 500,
+        "description": "Maximum total size (MB)"
+      },
+      "skipInvalid": {
+        "type": "boolean",
+        "default": true,
+        "description": "Skip invalid files"
+      },
+      "targetWidth": {
+        "type": "number",
+        "default": 1920,
+        "description": "Target width (pixels)"
+      },
+      "targetHeight": {
+        "type": "number",
+        "default": 1080,
+        "description": "Target height (pixels)"
+      },
+      "resizeMode": {
+        "type": "select",
+        "options": ["fit", "fill", "crop", "stretch"],
+        "default": "fit",
+        "description": "Resize mode"
+      },
+      "maintainAspectRatio": {
+        "type": "boolean",
+        "default": true,
+        "description": "Maintain aspect ratio"
+      },
+      "optimizeSize": {
+        "type": "boolean",
+        "default": true,
+        "description": "Optimize file size"
+      },
+      "targetQuality": {
+        "type": "number",
+        "min": 1,
+        "max": 100,
+        "default": 85,
+        "description": "Target quality"
+      },
+      "stripMetadata": {
+        "type": "boolean",
+        "default": true,
+        "description": "Strip metadata"
+      },
+      "progressiveJpeg": {
+        "type": "boolean",
+        "default": true,
+        "description": "Use progressive JPEG"
+      },
+      "enableWatermark": {
+        "type": "boolean",
+        "default": false,
+        "description": "Enable watermark"
+      },
+      "watermarkText": {
+        "type": "string",
+        "default": "© Company Name",
+        "description": "Watermark text"
+      },
+      "watermarkImage": {
+        "type": "string",
+        "default": "",
+        "description": "Watermark image URL"
+      },
+      "watermarkPosition": {
+        "type": "select",
+        "options": ["bottom-right", "bottom-left", "top-right", "top-left", "center"],
+        "default": "bottom-right",
+        "description": "Watermark position"
+      },
+      "watermarkOpacity": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "default": 50,
+        "description": "Watermark opacity"
+      },
+      "targetFormat": {
+        "type": "select",
+        "options": ["original", "jpg", "png", "webp", "avif"],
+        "default": "webp",
+        "description": "Target format"
+      },
+      "conversionQuality": {
+        "type": "number",
+        "min": 1,
+        "max": 100,
+        "default": 85,
+        "description": "Conversion quality"
+      },
+      "preserveOriginal": {
+        "type": "boolean",
+        "default": false,
+        "description": "Preserve original files"
+      },
+      "outputPath": {
+        "type": "string",
+        "default": "processed/",
+        "description": "Output path"
+      },
+      "namingPattern": {
+        "type": "string",
+        "default": "{{filename}}_processed.{{extension}}",
+        "description": "Naming pattern"
+      },
+      "createZip": {
+        "type": "boolean",
+        "default": true,
+        "description": "Create ZIP archive"
+      },
+      "generateReport": {
+        "type": "boolean",
+        "default": true,
+        "description": "Generate processing report"
+      }
+    },
+    "usageCount": 0,
+    "tags": ["image", "batch", "processing", "optimization", "conversion"],
+    "difficulty": "intermediate",
+    "estimatedTime": "1-10 minutes",
+    "cost": "low-medium"
+  },
+  {
+    "id": "template-style-transfer",
+    "name": "AI Style Transfer",
+    "description": "Apply artistic styles to images using neural style transfer",
+    "category": "image-processing",
+    "isPublic": true,
+    "configuration": {
+      "nodes": [
+        {
+          "id": "content-input-{{uuid}}",
+          "type": "image-input",
+          "position": { "x": 100, "y": 100 },
+          "config": {
+            "label": "Content Image",
+            "acceptedFormats": ["jpg", "png", "webp"],
+            "maxSize": 20,
+            "required": true
+          }
+        },
+        {
+          "id": "style-input-{{uuid}}",
+          "type": "image-input",
+          "position": { "x": 100, "y": 200 },
+          "config": {
+            "label": "Style Image",
+            "acceptedFormats": ["jpg", "png", "webp"],
+            "maxSize": 20,
+            "required": "{{requireStyleImage}}"
+          }
+        },
+        {
+          "id": "style-selector-{{uuid}}",
+          "type": "style-selector",
+          "position": { "x": 100, "y": 300 },
+          "config": {
+            "presetStyles": ["{{presetStyles}}"],
+            "allowCustom": "{{allowCustomStyle}}"
+          }
+        },
+        {
+          "id": "preprocessor-{{uuid}}",
+          "type": "image-preprocessor",
+          "position": { "x": 300, "y": 150 },
+          "config": {
+            "normalizeSize": true,
+            "enhanceDetails": "{{enhanceDetails}}",
+            "adjustContrast": "{{adjustContrast}}"
+          }
+        },
+        {
+          "id": "style-transfer-{{uuid}}",
+          "type": "neural-style-transfer",
+          "position": { "x": 500, "y": 150 },
+          "config": {
+            "model": "{{styleModel}}",
+            "strength": "{{styleStrength}}",
+            "iterations": "{{iterations}}",
+            "preserveContent": "{{preserveContent}}",
+            "colorPreservation": "{{colorPreservation}}"
+          }
+        },
+        {
+          "id": "post-processor-{{uuid}}",
+          "type": "image-post-processor",
+          "position": { "x": 700, "y": 150 },
+          "config": {
+            "enhanceSharpness": "{{enhanceSharpness}}",
+            "adjustSaturation": "{{adjustSaturation}}",
+            "reduceNoise": "{{reduceNoise}}"
+          }
+        },
+        {
+          "id": "blender-{{uuid}}",
+          "type": "image-blender",
+          "position": { "x": 900, "y": 150 },
+          "config": {
+            "blendMode": "{{blendMode}}",
+            "blendStrength": "{{blendStrength}}",
+            "preserveOriginal": "{{preserveOriginal}}"
+          }
+        },
+        {
+          "id": "output-{{uuid}}",
+          "type": "image-output",
+          "position": { "x": 1100, "y": 150 },
+          "config": {
+            "format": "{{outputFormat}}",
+            "quality": "{{outputQuality}}",
+            "includeOriginal": "{{includeOriginal}}",
+            "generatePreview": "{{generatePreview}}"
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": "conn-{{uuid}}-1",
+          "source": "content-input-{{uuid}}",
+          "target": "preprocessor-{{uuid}}",
+          "sourceHandle": "image",
+          "targetHandle": "content"
+        },
+        {
+          "id": "conn-{{uuid}}-2",
+          "source": "style-input-{{uuid}}",
+          "target": "preprocessor-{{uuid}}",
+          "sourceHandle": "image",
+          "targetHandle": "style"
+        },
+        {
+          "id": "conn-{{uuid}}-3",
+          "source": "style-selector-{{uuid}}",
+          "target": "preprocessor-{{uuid}}",
+          "sourceHandle": "style",
+          "targetHandle": "preset-style"
+        },
+        {
+          "id": "conn-{{uuid}}-4",
+          "source": "preprocessor-{{uuid}}",
+          "target": "style-transfer-{{uuid}}",
+          "sourceHandle": "processed",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-5",
+          "source": "style-transfer-{{uuid}}",
+          "target": "post-processor-{{uuid}}",
+          "sourceHandle": "stylized",
+          "targetHandle": "input"
+        },
+        {
+          "id": "conn-{{uuid}}-6",
+          "source": "post-processor-{{uuid}}",
+          "target": "blender-{{uuid}}",
+          "sourceHandle": "processed",
+          "targetHandle": "stylized"
+        },
+        {
+          "id": "conn-{{uuid}}-7",
+          "source": "content-input-{{uuid}}",
+          "target": "blender-{{uuid}}",
+          "sourceHandle": "image",
+          "targetHandle": "original"
+        },
+        {
+          "id": "conn-{{uuid}}-8",
+          "source": "blender-{{uuid}}",
+          "target": "output-{{uuid}}",
+          "sourceHandle": "blended",
+          "targetHandle": "input"
+        }
+      ]
+    },
+    "parameters": {
+      "requireStyleImage": {
+        "type": "boolean",
+        "default": false,
+        "description": "Require style image upload"
+      },
+      "presetStyles": {
+        "type": "multiselect",
+        "options": ["van-gogh", "picasso", "monet", "abstract", "oil-painting", "watercolor", "pencil-sketch"],
+        "default": ["van-gogh", "picasso", "monet", "abstract"],
+        "description": "Preset styles"
+      },
+      "allowCustomStyle": {
+        "type": "boolean",
+        "default": true,
+        "description": "Allow custom style upload"
+      },
+      "enhanceDetails": {
+        "type": "boolean",
+        "default": true,
+        "description": "Enhance image details"
+      },
+      "adjustContrast": {
+        "type": "boolean",
+        "default": true,
+        "description": "Adjust contrast"
+      },
+      "styleModel": {
+        "type": "select",
+        "options": ["neural-style", "fast-neural-style", "cyclegan", "stylegan"],
+        "default": "fast-neural-style",
+        "description": "Style transfer model"
+      },
+      "styleStrength": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "default": 70,
+        "description": "Style strength"
+      },
+      "iterations": {
+        "type": "number",
+        "min": 10,
+        "max": 1000,
+        "default": 100,
+        "description": "Number of iterations"
+      },
+      "preserveContent": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "default": 30,
+        "description": "Content preservation"
+      },
+      "colorPreservation": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "default": 20,
+        "description": "Color preservation"
+      },
+      "enhanceSharpness": {
+        "type": "boolean",
+        "default": true,
+        "description": "Enhance sharpness"
+      },
+      "adjustSaturation": {
+        "type": "boolean",
+        "default": true,
+        "description": "Adjust saturation"
+      },
+      "reduceNoise": {
+        "type": "boolean",
+        "default": true,
+        "description": "Reduce noise"
+      },
+      "blendMode": {
+        "type": "select",
+        "options": ["normal", "multiply", "screen", "overlay", "soft-light", "hard-light"],
+        "default": "normal",
+        "description": "Blend mode"
+      },
+      "blendStrength": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "default": 100,
+        "description": "Blend strength"
+      },
+      "preserveOriginal": {
+        "type": "number",
+        "min": 0,
+        "max": 50,
+        "default": 10,
+        "description": "Preserve original (0-50%)"
+      },
+      "outputFormat": {
+        "type": "select",
+        "options": ["jpg", "png", "webp"],
+        "default": "jpg",
+        "description": "Output format"
+      },
+      "outputQuality": {
+        "type": "number",
+        "min": 1,
+        "max": 100,
+        "default": 90,
+        "description": "Output quality"
+      },
+      "includeOriginal": {
+        "type": "boolean",
+        "default": true,
+        "description": "Include original in output"
+      },
+      "generatePreview": {
+        "type": "boolean",
+        "default": true,
+        "description": "Generate preview"
+      }
+    },
+    "usageCount": 0,
+    "tags": ["image", "style-transfer", "ai", "artistic", "neural-network"],
+    "difficulty": "advanced",
+    "estimatedTime": "30-180 seconds",
+    "cost": "medium-high"
+  }
+]

@@ -1,0 +1,152 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "Imaginarium API Documentation",
+  "entryPoints": [
+    "apps/server/src/index.ts",
+    "packages/shared/src/index.ts",
+    "libs/core/src/index.ts",
+    "libs/ui/src/index.ts"
+  ],
+  "out": "docs/api",
+  "theme": "default",
+  "readme": "docs/API.md",
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "excludeExternals": true,
+  "categorizeByGroup": true,
+  "categoryOrder": [
+    "Server API",
+    "Core Engine", 
+    "UI Components",
+    "Shared Utilities",
+    "*"
+  ],
+  "groupOrder": [
+    "Classes",
+    "Interfaces", 
+    "Types",
+    "Functions",
+    "Variables",
+    "*"
+  ],
+  "sort": ["source-order"],
+  "kindSortOrder": [
+    "Document",
+    "Project",
+    "Module",
+    "Namespace",
+    "Enum",
+    "EnumMember",
+    "Class",
+    "Interface",
+    "TypeAlias",
+    "Constructor",
+    "Property",
+    "Variable",
+    "Function",
+    "Accessor",
+    "Method",
+    "Parameter",
+    "TypeParameter",
+    "TypeLiteral",
+    "CallSignature",
+    "ConstructorSignature",
+    "IndexSignature",
+    "GetSignature",
+    "SetSignature"
+  ],
+  "searchInComments": true,
+  "searchInDocuments": true,
+  "cleanOutputDir": true,
+  "titleLink": "https://github.com/your-org/imaginarium",
+  "navigationLinks": {
+    "GitHub": "https://github.com/your-org/imaginarium",
+    "API Guide": "https://github.com/your-org/imaginarium/blob/main/docs/API.md"
+  },
+  "sidebarLinks": {
+    "GitHub Issues": "https://github.com/your-org/imaginarium/issues",
+    "Contributing": "https://github.com/your-org/imaginarium/blob/main/CONTRIBUTING.md"
+  },
+  "githubPages": true,
+  "sourceLinkTemplate": "https://github.com/your-org/imaginarium/blob/{gitRevision}/{path}#L{line}",
+  "visibilityFilters": {
+    "protected": false,
+    "private": false,
+    "inherited": true,
+    "external": false,
+    "@alpha": false,
+    "@beta": false
+  },
+  "commentStyle": "jsdoc",
+  "blockTags": [
+    "@alpha",
+    "@beta",
+    "@deprecated",
+    "@defaultValue",
+    "@example",
+    "@experimental",
+    "@group",
+    "@hidden",
+    "@ignore",
+    "@internal",
+    "@label", 
+    "@module",
+    "@namespace",
+    "@override",
+    "@packageDocumentation",
+    "@param",
+    "@privateRemarks",
+    "@public",
+    "@readonly",
+    "@remarks",
+    "@returns",
+    "@sealed",
+    "@see",
+    "@since",
+    "@throws",
+    "@typeParam",
+    "@virtual"
+  ],
+  "inlineTags": [
+    "@inheritDoc",
+    "@label",
+    "@link",
+    "@linkcode",
+    "@linkplain"
+  ],
+  "modifierTags": [
+    "@alpha",
+    "@beta", 
+    "@deprecated",
+    "@experimental",
+    "@hidden",
+    "@ignore",
+    "@internal",
+    "@override",
+    "@packageDocumentation",
+    "@public",
+    "@readonly",
+    "@sealed",
+    "@virtual"
+  ],
+  "excludeTags": [
+    "@internal",
+    "@hidden",
+    "@ignore"
+  ],
+  "hostedBaseUrl": "https://docs.imaginarium.example.com/api/",
+  "customCss": "docs/typedoc-custom.css",
+  "gaID": "G-XXXXXXXXXX",
+  "gitRevision": "main",
+  "gitRemote": "origin",
+  "plugin": [
+    "typedoc-plugin-markdown",
+    "typedoc-plugin-mermaid"
+  ],
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  }
+}

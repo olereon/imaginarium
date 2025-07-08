@@ -61,7 +61,32 @@
     "docker:prod:backup": "./scripts/docker-prod.sh backup",
     "release": "semantic-release",
     "release:dry": "semantic-release --dry-run",
-    "version:check": "semantic-release --dry-run --no-ci"
+    "version:check": "semantic-release --dry-run --no-ci",
+    "docs:api": "npm run docs:api --workspace=@imaginarium/server",
+    "docs:ui": "npm run build-storybook --workspace=@imaginarium/ui",
+    "docs:generate": "npm run docs:generate --workspace=@imaginarium/server && npm run docs:ui",
+    "docs:serve": "npm run docs:serve --workspace=@imaginarium/server",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:create": "prisma migrate dev --create-only",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:migrate:reset": "prisma migrate reset",
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "db:push": "prisma db push",
+    "db:seed": "npm run prisma:seed",
+    "migrate:dev": "./scripts/migrate-dev.sh",
+    "migrate:prod": "./scripts/migrate-prod.sh",
+    "migrate:test": "./scripts/test-migration.sh",
+    "migrate:rollback": "./scripts/rollback.sh",
+    "migrate:deploy": "./scripts/deploy-migration.sh",
+    "migrate:status": "./scripts/migrate-dev.sh status",
+    "migrate:backup": "./scripts/migrate-prod.sh backup",
+    "migrate:cleanup": "./scripts/migrate-prod.sh cleanup",
+    "fixtures:load": "tsx prisma/fixtures/load-fixtures.ts load",
+    "fixtures:clear": "tsx prisma/fixtures/load-fixtures.ts clear",
+    "fixtures:reload": "tsx prisma/fixtures/load-fixtures.ts reload",
+    "postinstall": "prisma generate"
   },
   "keywords": [
     "ai",
@@ -101,6 +126,7 @@
     "husky": "^8.0.3",
     "lint-staged": "^15.2.0",
     "prettier": "^3.6.2",
+    "prisma": "^6.11.1",
     "rimraf": "^5.0.5",
     "semantic-release": "^22.0.12",
     "typescript": "^5.3.3",
@@ -119,5 +145,10 @@
     "commitizen": {
       "path": "cz-conventional-changelog"
     }
+  },
+  "dependencies": {
+    "@prisma/client": "^6.11.1",
+    "bcryptjs": "^3.0.2",
+    "tsx": "^4.20.3"
   }
 }
