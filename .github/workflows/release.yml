@@ -154,7 +154,7 @@ jobs:
             type=sha
 
       - name: Build and push server image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           target: server-prod
@@ -165,7 +165,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push client image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           target: client-prod
