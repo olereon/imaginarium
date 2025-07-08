@@ -2,13 +2,28 @@
   "name": "imaginarium",
   "version": "1.0.0",
   "description": "AI content generation pipeline automation platform",
-  "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "libs/*"
+  ],
   "scripts": {
-    "dev": "echo 'Development server not configured yet'",
-    "build": "echo 'Build script not configured yet'",
-    "test": "echo 'Test script not configured yet'",
-    "lint": "echo 'Lint script not configured yet'",
-    "prepare": "husky install"
+    "dev": "npm run dev --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present && rm -rf node_modules/.cache",
+    "prepare": "husky install",
+    "dev:client": "npm run dev --workspace=apps/client",
+    "dev:server": "npm run dev --workspace=apps/server",
+    "build:client": "npm run build --workspace=apps/client",
+    "build:server": "npm run build --workspace=apps/server",
+    "test:client": "npm run test --workspace=apps/client",
+    "test:server": "npm run test --workspace=apps/server",
+    "workspace:install": "npm install --workspaces",
+    "workspace:update": "npm update --workspaces"
   },
   "keywords": [
     "ai",
@@ -16,22 +31,37 @@
     "pipeline",
     "content-generation",
     "typescript",
-    "nodejs"
+    "nodejs",
+    "monorepo"
   ],
   "author": "Imaginarium Team",
   "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "devDependencies": {
     "husky": "^8.0.3",
     "@commitlint/cli": "^18.4.3",
     "@commitlint/config-conventional": "^18.4.3",
-    "lint-staged": "^15.2.0"
+    "lint-staged": "^15.2.0",
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.5",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "prettier": "^3.1.1",
+    "vitest": "^1.1.0",
+    "concurrently": "^8.2.2",
+    "rimraf": "^5.0.5"
   },
   "lint-staged": {
     "*.{js,ts,tsx}": [
-      "echo 'Linting TypeScript files (lint not configured yet)'"
+      "eslint --fix",
+      "prettier --write"
     ],
-    "*.{json,md}": [
-      "echo 'Formatting JSON/MD files (prettier not configured yet)'"
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
     ]
   },
   "config": {

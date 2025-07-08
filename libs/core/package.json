@@ -1,0 +1,55 @@
+{
+  "name": "@imaginarium/core",
+  "version": "1.0.0",
+  "description": "Core pipeline engine and business logic for Imaginarium",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./pipeline": {
+      "import": "./dist/pipeline/index.js",
+      "types": "./dist/pipeline/index.d.ts"
+    },
+    "./nodes": {
+      "import": "./dist/nodes/index.js",
+      "types": "./dist/nodes/index.d.ts"
+    },
+    "./connectors": {
+      "import": "./dist/connectors/index.js",
+      "types": "./dist/connectors/index.d.ts"
+    },
+    "./validators": {
+      "import": "./dist/validators/index.js",
+      "types": "./dist/validators/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist .turbo node_modules/.cache"
+  },
+  "dependencies": {
+    "zod": "^3.22.4",
+    "axios": "^1.6.2",
+    "openai": "^4.20.1",
+    "sharp": "^0.33.1",
+    "winston": "^3.11.0",
+    "eventemitter3": "^5.0.1",
+    "p-queue": "^8.0.1",
+    "p-retry": "^6.2.0",
+    "@imaginarium/shared": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "nock": "^13.4.0"
+  }
+}
