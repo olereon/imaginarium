@@ -24,7 +24,7 @@ This is a monorepo using npm workspaces with the following structure:
 
 ### Key Technologies
 - **Frontend**: React 18, Vite, Tailwind CSS, Ant Design, Zustand, React Router, React Flow, Socket.io
-- **Backend**: Express.js, TypeScript, Prisma ORM, SQLite, Redis, Bull queues, Socket.io, Winston logging
+- **Backend**: Express.js, TypeScript, Prisma ORM, SQLite/PostgreSQL, Redis, Bull queues, Socket.io, Winston logging, Query optimization system
 - **Testing**: Vitest across all packages
 - **Build**: TypeScript project references for efficient incremental builds
 
@@ -84,10 +84,50 @@ npm run test --workspace=@imaginarium/client
 
 ## Database
 
+### Core Configuration
 - **ORM**: Prisma with SQLite (development) and PostgreSQL (production)
-- **Location**: `prisma/schema.prisma` contains the complete database schema
-- **Key models**: User, Pipeline, PipelineRun, TaskExecution, ExecutionLog
-- **Features**: Comprehensive user management, pipeline versioning, execution tracking, file uploads
+- **Schema**: `prisma/schema.prisma` contains the complete database schema
+- **Enhanced Schemas**: 
+  - `prisma/schema-enhanced.prisma` - SQLite optimized with 200+ indexes
+  - `prisma/schema-postgresql.prisma` - PostgreSQL optimized with advanced indexes
+
+### Database Models
+- **Users & Auth**: User, Session, ApiKey with role-based access control
+- **Pipelines**: Pipeline, PipelineVersion, PipelineTemplate with versioning
+- **Execution**: PipelineRun, TaskExecution, ExecutionLog with detailed tracking
+- **Files**: FileUpload, Artifact, Thumbnail, FileReference with S3 integration
+- **Infrastructure**: ProviderCredential for multi-provider AI integration
+
+### Performance Optimization System
+- **200+ Strategic Indexes**: Composite, partial, and covering indexes
+- **Query Analysis**: Real-time performance monitoring with configurable thresholds
+- **Optimized Prisma Client**: `apps/server/src/lib/prisma-optimized.ts`
+- **Query Analyzer**: `apps/server/src/lib/query-analyzer.ts`
+- **Admin APIs**: Query performance monitoring at `/api/admin/query-performance/*`
+
+### Key Performance Features
+- **Composite Indexes**: Multi-column indexes for complex queries (e.g., `[userId, status, queuedAt]`)
+- **Partial Indexes**: PostgreSQL filtered indexes for common query patterns
+- **GIN Indexes**: Full-text search and JSONB field optimization
+- **Query Caching**: Automatic caching for read operations
+- **Batch Operations**: Optimized bulk data handling
+- **Slow Query Detection**: Configurable threshold monitoring (default: 1000ms)
+
+### Database Operations
+```bash
+# Schema Management
+npm run prisma:generate       # Generate Prisma client after schema changes
+npm run prisma:migrate        # Create and apply new migrations
+npm run prisma:studio         # Open Prisma Studio GUI
+npm run db:push               # Push schema changes directly (development)
+
+# Data Management  
+npm run prisma:seed           # Seed database with sample data
+npm run db:reset              # Reset database and re-seed
+
+# Performance Monitoring
+# Access query performance dashboard at /api/admin/query-performance/
+```
 
 ## Configuration
 
@@ -96,6 +136,17 @@ npm run test --workspace=@imaginarium/client
 - **Prettier**: Automatic code formatting
 - **Path mapping**: Use `@imaginarium/shared`, `@imaginarium/ui`, `@imaginarium/core` imports
 - **Environment**: `.env` file for local configuration
+
+### Environment Variables
+```env
+# Database Configuration
+DATABASE_URL=sqlite:./data/imaginarium.db  # SQLite for development
+DATABASE_PROVIDER=sqlite                   # 'sqlite' or 'postgresql'
+SLOW_QUERY_THRESHOLD=1000                  # Query performance threshold (ms)
+
+# Production Database
+DATABASE_URL=postgresql://user:pass@host:5432/imaginarium  # PostgreSQL for production
+```
 
 ## Testing Strategy
 
@@ -128,6 +179,13 @@ npm run docker:prod           # Production build
 - **Port conflicts**: Client (5173), Server (3000), ensure these ports are available
 - **Dependencies**: Use `npm install <package> --workspace=<target>` to add dependencies to specific packages
 
+### Database Performance Guidelines
+- **Schema Changes**: Always use migrations for production changes
+- **Index Usage**: Monitor query performance via admin dashboard
+- **Query Optimization**: Use the optimized Prisma client from `apps/server/src/lib/prisma-optimized.ts`
+- **Performance Monitoring**: Check `/api/admin/query-performance/stats` for query insights
+- **PostgreSQL Migration**: Follow the indexing strategy documented in `docs/database-indexing-strategy.md`
+
 ## Debugging
 
 - **Frontend**: React DevTools, browser DevTools with source maps
@@ -140,3 +198,5 @@ npm run docker:prod           # Production build
 2. **Type errors**: Run `npm run typecheck` to identify issues
 3. **Database issues**: Check if `prisma:generate` was run after schema changes
 4. **Port conflicts**: Ensure ports 3000 and 5173 are available
+5. **Slow queries**: Monitor via `/api/admin/query-performance/slow-queries` and check index usage
+6. **Database performance**: Use the optimized client and check query patterns for optimization opportunities
