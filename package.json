@@ -49,7 +49,16 @@
     "test:client:coverage": "vitest run --coverage --config apps/client/vitest.config.ts",
     "test:server:coverage": "vitest run --coverage --config apps/server/vitest.config.ts",
     "workspace:install": "npm install --workspaces",
-    "workspace:update": "npm update --workspaces"
+    "workspace:update": "npm update --workspaces",
+    "docker:dev": "./scripts/docker-dev.sh",
+    "docker:dev:start": "./scripts/docker-dev.sh start",
+    "docker:dev:stop": "./scripts/docker-dev.sh stop",
+    "docker:dev:logs": "./scripts/docker-dev.sh logs",
+    "docker:dev:clean": "./scripts/docker-dev.sh clean",
+    "docker:prod": "./scripts/docker-prod.sh",
+    "docker:prod:deploy": "./scripts/docker-prod.sh deploy",
+    "docker:prod:update": "./scripts/docker-prod.sh update",
+    "docker:prod:backup": "./scripts/docker-prod.sh backup"
   },
   "keywords": [
     "ai",

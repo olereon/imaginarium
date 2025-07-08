@@ -1,0 +1,180 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: imaginarium-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-imaginarium}
+      POSTGRES_USER: ${POSTGRES_USER:-imaginarium}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-imaginarium_dev}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - imaginarium-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-imaginarium} -d ${POSTGRES_DB:-imaginarium}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and queues
+  redis:
+    image: redis:7-alpine
+    container_name: imaginarium-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - imaginarium-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  # Backend API Server
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: server-dev
+    container_name: imaginarium-server
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-imaginarium}:${POSTGRES_PASSWORD:-imaginarium_dev}@postgres:5432/${POSTGRES_DB:-imaginarium}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      STABILITY_AI_API_KEY: ${STABILITY_AI_API_KEY}
+      CORS_ORIGIN: http://localhost:5173
+    ports:
+      - "${SERVER_PORT:-3000}:3000"
+    volumes:
+      # Source code for hot reloading
+      - .:/app
+      - /app/node_modules
+      - /app/apps/server/node_modules
+      - /app/libs/core/node_modules
+      - /app/packages/shared/node_modules
+      # Storage for uploaded files and outputs
+      - uploads_data:/app/uploads
+      - outputs_data:/app/outputs
+    networks:
+      - imaginarium-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Client (Vite dev server)
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: imaginarium-client
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: http://localhost:3000/api
+      VITE_WS_URL: ws://localhost:3000
+    ports:
+      - "${CLIENT_PORT:-5173}:5173"
+    volumes:
+      # Source code for hot reloading
+      - .:/app
+      - /app/node_modules
+      - /app/apps/client/node_modules
+      - /app/libs/ui/node_modules
+      - /app/packages/shared/node_modules
+    networks:
+      - imaginarium-network
+    depends_on:
+      - server
+    stdin_open: true
+    tty: true
+
+  # MinIO for S3-compatible object storage (development)
+  minio:
+    image: minio/minio:latest
+    container_name: imaginarium-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - imaginarium-network
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Mailhog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: imaginarium-mailhog
+    restart: unless-stopped
+    ports:
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "${MAILHOG_WEB_PORT:-8025}:8025"
+    networks:
+      - imaginarium-network
+
+  # Nginx reverse proxy (optional, for production-like setup)
+  nginx:
+    image: nginx:alpine
+    container_name: imaginarium-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./docker/nginx/dev.conf:/etc/nginx/nginx.conf
+    networks:
+      - imaginarium-network
+    depends_on:
+      - client
+      - server
+    profiles:
+      - production-like
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+  uploads_data:
+    driver: local
+  outputs_data:
+    driver: local
+
+networks:
+  imaginarium-network:
+    driver: bridge
