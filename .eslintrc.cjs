@@ -80,5 +80,19 @@ module.exports = {
         'no-console': 'off',
       },
     },
+    {
+      files: ['prisma/**/*', '**/seed.ts', '**/factories/**/*', '**/fixtures/**/*'],
+      rules: {
+        'no-unused-vars': 'off',
+        'no-console': 'off',
+        '@typescript-eslint/no-unused-vars': 'off',
+      },
+    },
+    {
+      files: ['**/*.repository.ts', '**/lib/**/*'],
+      rules: {
+        'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      },
+    },
   ],
 };

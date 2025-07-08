@@ -28,7 +28,7 @@ describe('debounce', () => {
     const debouncedFn = debounce(fn, 100);
 
     debouncedFn();
-    
+
     // Call again before first call executes
     setTimeout(() => debouncedFn(), 50);
 

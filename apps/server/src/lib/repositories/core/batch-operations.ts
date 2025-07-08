@@ -2,46 +2,46 @@
  * Batch operations utility for efficient bulk database operations
  */
 
-import { EventEmitter } from 'events'
-import { Logger } from 'winston'
-import { createLogger } from '../../utils/logger.js'
-import type { TransactionContext, BulkOperationResult } from '../interfaces/index.js'
-import { BulkOperationError, ErrorFactory } from './errors.js'
-import { DatabaseManager } from './database-manager.js'
+import { EventEmitter } from 'events';
+import { Logger } from 'winston';
+import { createLogger } from '../../utils/logger.js';
+import type { TransactionContext, BulkOperationResult } from '../interfaces/index.js';
+import { BulkOperationError, ErrorFactory } from './errors.js';
+import { DatabaseManager } from './database-manager.js';
 
 export interface BatchConfig {
-  batchSize: number
-  maxConcurrency: number
-  retryAttempts: number
-  retryDelay: number
-  progressReporting: boolean
-  failOnFirstError: boolean
-  validateBeforeProcess: boolean
+  batchSize: number;
+  maxConcurrency: number;
+  retryAttempts: number;
+  retryDelay: number;
+  progressReporting: boolean;
+  failOnFirstError: boolean;
+  validateBeforeProcess: boolean;
 }
 
 export interface BatchProgress {
-  total: number
-  processed: number
-  successful: number
-  failed: number
-  percentage: number
-  errors: Array<{ index: number; error: string }>
+  total: number;
+  processed: number;
+  successful: number;
+  failed: number;
+  percentage: number;
+  errors: Array<{ index: number; error: string }>;
 }
 
 export interface BatchOperation<T, R> {
-  id: string
-  data: T[]
-  operation: (item: T, index: number) => Promise<R>
-  validation?: (item: T, index: number) => Promise<boolean>
-  onProgress?: (progress: BatchProgress) => void
-  onError?: (error: Error, item: T, index: number) => void
-  onSuccess?: (result: R, item: T, index: number) => void
+  id: string;
+  data: T[];
+  operation: (item: T, index: number) => Promise<R>;
+  validation?: (item: T, index: number) => Promise<boolean>;
+  onProgress?: (progress: BatchProgress) => void;
+  onError?: (error: Error, item: T, index: number) => void;
+  onSuccess?: (result: R, item: T, index: number) => void;
 }
 
 export class BatchOperationManager extends EventEmitter {
-  private logger: Logger
-  private dbManager: DatabaseManager
-  private activeBatches: Map<string, BatchOperation<any, any>> = new Map()
+  private logger: Logger;
+  private dbManager: DatabaseManager;
+  private activeBatches: Map<string, BatchOperation<any, any>> = new Map();
   private defaultConfig: BatchConfig = {
     batchSize: 100,
     maxConcurrency: 5,
@@ -49,14 +49,14 @@ export class BatchOperationManager extends EventEmitter {
     retryDelay: 1000,
     progressReporting: true,
     failOnFirstError: false,
-    validateBeforeProcess: true
-  }
+    validateBeforeProcess: true,
+  };
 
   constructor(config: Partial<BatchConfig> = {}) {
-    super()
-    this.logger = createLogger('BatchOperationManager')
-    this.dbManager = DatabaseManager.getInstance()
-    this.defaultConfig = { ...this.defaultConfig, ...config }
+    super();
+    this.logger = createLogger('BatchOperationManager');
+    this.dbManager = DatabaseManager.getInstance();
+    this.defaultConfig = { ...this.defaultConfig, ...config };
   }
 
   /**
@@ -66,45 +66,45 @@ export class BatchOperationManager extends EventEmitter {
     operation: BatchOperation<T, R>,
     config: Partial<BatchConfig> = {}
   ): Promise<BulkOperationResult & { results: Array<R | null> }> {
-    const finalConfig = { ...this.defaultConfig, ...config }
-    const startTime = Date.now()
-    
+    const finalConfig = { ...this.defaultConfig, ...config };
+    const startTime = Date.now();
+
     this.logger.info('Starting batch operation', {
       operationId: operation.id,
       dataSize: operation.data.length,
-      config: finalConfig
-    })
+      config: finalConfig,
+    });
 
-    this.activeBatches.set(operation.id, operation)
-    this.emit('batch:start', operation.id, operation.data.length)
+    this.activeBatches.set(operation.id, operation);
+    this.emit('batch:start', operation.id, operation.data.length);
 
     try {
-      const results = await this.processInBatches(operation, finalConfig)
-      const duration = Date.now() - startTime
-      
+      const results = await this.processInBatches(operation, finalConfig);
+      const duration = Date.now() - startTime;
+
       this.logger.info('Batch operation completed', {
         operationId: operation.id,
         duration,
         successful: results.successful,
         failed: results.failed,
-        total: results.total
-      })
+        total: results.total,
+      });
 
-      this.emit('batch:complete', operation.id, results)
-      return results
+      this.emit('batch:complete', operation.id, results);
+      return results;
     } catch (error) {
-      const duration = Date.now() - startTime
-      
+      const duration = Date.now() - startTime;
+
       this.logger.error('Batch operation failed', {
         operationId: operation.id,
         duration,
-        error: (error as Error).message
-      })
+        error: (error as Error).message,
+      });
 
-      this.emit('batch:error', operation.id, error)
-      throw error
+      this.emit('batch:error', operation.id, error);
+      throw error;
     } finally {
-      this.activeBatches.delete(operation.id)
+      this.activeBatches.delete(operation.id);
     }
   }
 
@@ -115,17 +115,17 @@ export class BatchOperationManager extends EventEmitter {
     operation: BatchOperation<T, R>,
     config: BatchConfig
   ): Promise<BulkOperationResult & { results: Array<R | null> }> {
-    const { data, operation: operationFn, validation } = operation
-    const { batchSize, maxConcurrency, failOnFirstError, validateBeforeProcess } = config
+    const { data, operation: operationFn, validation } = operation;
+    const { batchSize, maxConcurrency, failOnFirstError, validateBeforeProcess } = config;
 
-    const results: Array<R | null> = new Array(data.length).fill(null)
-    const errors: Array<{ index: number; error: string }> = []
-    let processed = 0
-    let successful = 0
+    const results: Array<R | null> = new Array(data.length).fill(null);
+    const errors: Array<{ index: number; error: string }> = [];
+    let processed = 0;
+    let successful = 0;
 
     // Pre-validation if enabled
     if (validateBeforeProcess && validation) {
-      const validationResults = await this.validateItems(data, validation)
+      const validationResults = await this.validateItems(data, validation);
       if (validationResults.errors.length > 0) {
         throw new BulkOperationError(
           'Validation failed before processing',
@@ -134,55 +134,55 @@ export class BatchOperationManager extends EventEmitter {
           validationResults.errors.map(e => ({
             index: e.index,
             item: data[e.index],
-            error: e.error
+            error: e.error,
           }))
-        )
+        );
       }
     }
 
     // Create batches
-    const batches = this.createBatches(data, batchSize)
-    
+    const batches = this.createBatches(data, batchSize);
+
     // Process batches with concurrency control
     for (let i = 0; i < batches.length; i += maxConcurrency) {
-      const currentBatches = batches.slice(i, i + maxConcurrency)
-      
-      const batchPromises = currentBatches.map(batch => 
-        this.processBatch(batch, operationFn, config)
-      )
+      const currentBatches = batches.slice(i, i + maxConcurrency);
 
-      const batchResults = await Promise.allSettled(batchPromises)
-      
+      const batchPromises = currentBatches.map(batch =>
+        this.processBatch(batch, operationFn, config)
+      );
+
+      const batchResults = await Promise.allSettled(batchPromises);
+
       // Collect results from current batch group
       for (let j = 0; j < batchResults.length; j++) {
-        const batchResult = batchResults[j]
-        const batchIndex = i + j
-        
+        const batchResult = batchResults[j];
+        const batchIndex = i + j;
+
         if (batchResult.status === 'fulfilled') {
-          const { results: batchItemResults, errors: batchErrors } = batchResult.value
-          
+          const { results: batchItemResults, errors: batchErrors } = batchResult.value;
+
           // Merge results
           for (const itemResult of batchItemResults) {
             if (itemResult.success) {
-              results[itemResult.originalIndex] = itemResult.result
-              successful++
+              results[itemResult.originalIndex] = itemResult.result;
+              successful++;
             } else {
               errors.push({
                 index: itemResult.originalIndex,
-                error: itemResult.error || 'Unknown error'
-              })
+                error: itemResult.error || 'Unknown error',
+              });
             }
-            processed++
+            processed++;
           }
         } else {
           // Entire batch failed
-          const batch = currentBatches[j]
+          const batch = currentBatches[j];
           for (const item of batch) {
             errors.push({
               index: item.originalIndex,
-              error: batchResult.reason.message
-            })
-            processed++
+              error: batchResult.reason.message,
+            });
+            processed++;
           }
         }
 
@@ -194,11 +194,11 @@ export class BatchOperationManager extends EventEmitter {
             successful,
             failed: errors.length,
             percentage: (processed / data.length) * 100,
-            errors: errors.slice(-10) // Last 10 errors
-          }
-          
-          operation.onProgress(progress)
-          this.emit('batch:progress', operation.id, progress)
+            errors: errors.slice(-10), // Last 10 errors
+          };
+
+          operation.onProgress(progress);
+          this.emit('batch:progress', operation.id, progress);
         }
 
         // Fail fast if configured
@@ -210,9 +210,9 @@ export class BatchOperationManager extends EventEmitter {
             errors.map(e => ({
               index: e.index,
               item: data[e.index],
-              error: e.error
+              error: e.error,
             }))
-          )
+          );
         }
       }
     }
@@ -224,8 +224,8 @@ export class BatchOperationManager extends EventEmitter {
       results,
       total: data.length,
       successful,
-      failed: errors.length
-    }
+      failed: errors.length,
+    };
   }
 
   /**
@@ -237,39 +237,39 @@ export class BatchOperationManager extends EventEmitter {
     config: BatchConfig
   ): Promise<{
     results: Array<{
-      originalIndex: number
-      success: boolean
-      result?: R
-      error?: string
-    }>
+      originalIndex: number;
+      success: boolean;
+      result?: R;
+      error?: string;
+    }>;
   }> {
     const results: Array<{
-      originalIndex: number
-      success: boolean
-      result?: R
-      error?: string
-    }> = []
+      originalIndex: number;
+      success: boolean;
+      result?: R;
+      error?: string;
+    }> = [];
 
     for (const { item, originalIndex } of batch) {
-      let attempts = 0
-      let lastError: Error | null = null
+      let attempts = 0;
+      let lastError: Error | null = null;
 
       while (attempts < config.retryAttempts) {
         try {
-          const result = await operationFn(item, originalIndex)
+          const result = await operationFn(item, originalIndex);
           results.push({
             originalIndex,
             success: true,
-            result
-          })
-          break
+            result,
+          });
+          break;
         } catch (error) {
-          lastError = error as Error
-          attempts++
-          
+          lastError = error as Error;
+          attempts++;
+
           if (attempts < config.retryAttempts) {
             // Wait before retry
-            await this.sleep(config.retryDelay * attempts)
+            await this.sleep(config.retryDelay * attempts);
           }
         }
       }
@@ -278,29 +278,32 @@ export class BatchOperationManager extends EventEmitter {
         results.push({
           originalIndex,
           success: false,
-          error: lastError.message
-        })
+          error: lastError.message,
+        });
       }
     }
 
-    return { results }
+    return { results };
   }
 
   /**
    * Create batches from data array
    */
-  private createBatches<T>(data: T[], batchSize: number): Array<Array<{ item: T; originalIndex: number }>> {
-    const batches: Array<Array<{ item: T; originalIndex: number }>> = []
-    
+  private createBatches<T>(
+    data: T[],
+    batchSize: number
+  ): Array<Array<{ item: T; originalIndex: number }>> {
+    const batches: Array<Array<{ item: T; originalIndex: number }>> = [];
+
     for (let i = 0; i < data.length; i += batchSize) {
       const batch = data.slice(i, i + batchSize).map((item, index) => ({
         item,
-        originalIndex: i + index
-      }))
-      batches.push(batch)
+        originalIndex: i + index,
+      }));
+      batches.push(batch);
     }
-    
-    return batches
+
+    return batches;
   }
 
   /**
@@ -310,26 +313,26 @@ export class BatchOperationManager extends EventEmitter {
     data: T[],
     validation: (item: T, index: number) => Promise<boolean>
   ): Promise<{ errors: Array<{ index: number; error: string }> }> {
-    const errors: Array<{ index: number; error: string }> = []
-    
+    const errors: Array<{ index: number; error: string }> = [];
+
     for (let i = 0; i < data.length; i++) {
       try {
-        const isValid = await validation(data[i], i)
+        const isValid = await validation(data[i], i);
         if (!isValid) {
           errors.push({
             index: i,
-            error: 'Validation failed'
-          })
+            error: 'Validation failed',
+          });
         }
       } catch (error) {
         errors.push({
           index: i,
-          error: (error as Error).message
-        })
+          error: (error as Error).message,
+        });
       }
     }
-    
-    return { errors }
+
+    return { errors };
   }
 
   /**
@@ -340,19 +343,19 @@ export class BatchOperationManager extends EventEmitter {
     operation: (item: T, index: number, context: TransactionContext) => Promise<R>,
     config: Partial<BatchConfig> = {}
   ): Promise<BulkOperationResult & { results: Array<R | null> }> {
-    const operationId = `batch_tx_${Date.now()}`
-    
-    return await this.dbManager.executeTransaction(async (tx) => {
-      const context: TransactionContext = { tx }
-      
+    const operationId = `batch_tx_${Date.now()}`;
+
+    return await this.dbManager.executeTransaction(async tx => {
+      const context: TransactionContext = { tx };
+
       const batchOperation: BatchOperation<T, R> = {
         id: operationId,
         data,
-        operation: (item, index) => operation(item, index, context)
-      }
-      
-      return await this.executeBatch(batchOperation, config)
-    })
+        operation: (item, index) => operation(item, index, context),
+      };
+
+      return await this.executeBatch(batchOperation, config);
+    });
   }
 
   /**
@@ -363,21 +366,21 @@ export class BatchOperationManager extends EventEmitter {
     data: T[],
     config: Partial<BatchConfig> = {}
   ): Promise<BulkOperationResult & { results: Array<R | null> }> {
-    const operationId = `batch_create_${Date.now()}`
-    
+    const operationId = `batch_create_${Date.now()}`;
+
     const batchOperation: BatchOperation<T, R> = {
       id: operationId,
       data,
       operation: async (item: T) => {
-        return await repository.create(item)
+        return await repository.create(item);
       },
       validation: async (item: T) => {
-        const validation = await repository.validate(item)
-        return validation.isValid
-      }
-    }
-    
-    return await this.executeBatch(batchOperation, config)
+        const validation = await repository.validate(item);
+        return validation.isValid;
+      },
+    };
+
+    return await this.executeBatch(batchOperation, config);
   }
 
   /**
@@ -388,22 +391,22 @@ export class BatchOperationManager extends EventEmitter {
     data: T[],
     config: Partial<BatchConfig> = {}
   ): Promise<BulkOperationResult & { results: Array<R | null> }> {
-    const operationId = `batch_update_${Date.now()}`
-    
+    const operationId = `batch_update_${Date.now()}`;
+
     const batchOperation: BatchOperation<T, R> = {
       id: operationId,
       data,
       operation: async (item: T) => {
-        const { id, ...updateData } = item
-        return await repository.update(id, updateData)
+        const { id, ...updateData } = item;
+        return await repository.update(id, updateData);
       },
       validation: async (item: T) => {
-        const validation = await repository.validate(item)
-        return validation.isValid
-      }
-    }
-    
-    return await this.executeBatch(batchOperation, config)
+        const validation = await repository.validate(item);
+        return validation.isValid;
+      },
+    };
+
+    return await this.executeBatch(batchOperation, config);
   }
 
   /**
@@ -414,17 +417,17 @@ export class BatchOperationManager extends EventEmitter {
     data: T[],
     config: Partial<BatchConfig> = {}
   ): Promise<BulkOperationResult & { results: Array<any | null> }> {
-    const operationId = `batch_delete_${Date.now()}`
-    
+    const operationId = `batch_delete_${Date.now()}`;
+
     const batchOperation: BatchOperation<T, any> = {
       id: operationId,
       data,
       operation: async (item: T) => {
-        return await repository.delete(item.id)
-      }
-    }
-    
-    return await this.executeBatch(batchOperation, config)
+        return await repository.delete(item.id);
+      },
+    };
+
+    return await this.executeBatch(batchOperation, config);
   }
 
   /**
@@ -434,31 +437,31 @@ export class BatchOperationManager extends EventEmitter {
     return Array.from(this.activeBatches.entries()).map(([id, operation]) => ({
       id,
       dataSize: operation.data.length,
-      startTime: new Date() // Would need to track actual start time
-    }))
+      startTime: new Date(), // Would need to track actual start time
+    }));
   }
 
   /**
    * Cancel batch operation
    */
   async cancelBatch(operationId: string): Promise<boolean> {
-    const operation = this.activeBatches.get(operationId)
+    const operation = this.activeBatches.get(operationId);
     if (!operation) {
-      return false
+      return false;
     }
-    
-    this.activeBatches.delete(operationId)
-    this.emit('batch:cancelled', operationId)
-    
-    this.logger.info('Batch operation cancelled', { operationId })
-    return true
+
+    this.activeBatches.delete(operationId);
+    this.emit('batch:cancelled', operationId);
+
+    this.logger.info('Batch operation cancelled', { operationId });
+    return true;
   }
 
   /**
    * Sleep utility
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 
@@ -466,89 +469,86 @@ export class BatchOperationManager extends EventEmitter {
  * Batch operation builder for fluent API
  */
 export class BatchOperationBuilder<T, R> {
-  private operation: Partial<BatchOperation<T, R>> = {}
-  private config: Partial<BatchConfig> = {}
+  private operation: Partial<BatchOperation<T, R>> = {};
+  private config: Partial<BatchConfig> = {};
 
   constructor(private manager: BatchOperationManager) {}
 
   withId(id: string): this {
-    this.operation.id = id
-    return this
+    this.operation.id = id;
+    return this;
   }
 
   withData(data: T[]): this {
-    this.operation.data = data
-    return this
+    this.operation.data = data;
+    return this;
   }
 
   withOperation(operation: (item: T, index: number) => Promise<R>): this {
-    this.operation.operation = operation
-    return this
+    this.operation.operation = operation;
+    return this;
   }
 
   withValidation(validation: (item: T, index: number) => Promise<boolean>): this {
-    this.operation.validation = validation
-    return this
+    this.operation.validation = validation;
+    return this;
   }
 
   withProgressCallback(callback: (progress: BatchProgress) => void): this {
-    this.operation.onProgress = callback
-    return this
+    this.operation.onProgress = callback;
+    return this;
   }
 
   withErrorCallback(callback: (error: Error, item: T, index: number) => void): this {
-    this.operation.onError = callback
-    return this
+    this.operation.onError = callback;
+    return this;
   }
 
   withSuccessCallback(callback: (result: R, item: T, index: number) => void): this {
-    this.operation.onSuccess = callback
-    return this
+    this.operation.onSuccess = callback;
+    return this;
   }
 
   withBatchSize(size: number): this {
-    this.config.batchSize = size
-    return this
+    this.config.batchSize = size;
+    return this;
   }
 
   withMaxConcurrency(concurrency: number): this {
-    this.config.maxConcurrency = concurrency
-    return this
+    this.config.maxConcurrency = concurrency;
+    return this;
   }
 
   withRetryAttempts(attempts: number): this {
-    this.config.retryAttempts = attempts
-    return this
+    this.config.retryAttempts = attempts;
+    return this;
   }
 
   withRetryDelay(delay: number): this {
-    this.config.retryDelay = delay
-    return this
+    this.config.retryDelay = delay;
+    return this;
   }
 
   failOnFirstError(fail: boolean = true): this {
-    this.config.failOnFirstError = fail
-    return this
+    this.config.failOnFirstError = fail;
+    return this;
   }
 
   validateBeforeProcess(validate: boolean = true): this {
-    this.config.validateBeforeProcess = validate
-    return this
+    this.config.validateBeforeProcess = validate;
+    return this;
   }
 
   async execute(): Promise<BulkOperationResult & { results: Array<R | null> }> {
     if (!this.operation.id) {
-      this.operation.id = `batch_${Date.now()}`
+      this.operation.id = `batch_${Date.now()}`;
     }
 
     if (!this.operation.data || !this.operation.operation) {
-      throw new Error('Data and operation are required')
+      throw new Error('Data and operation are required');
     }
 
-    return await this.manager.executeBatch(
-      this.operation as BatchOperation<T, R>,
-      this.config
-    )
+    return await this.manager.executeBatch(this.operation as BatchOperation<T, R>, this.config);
   }
 }
 
@@ -558,13 +558,13 @@ export class BatchOperationBuilder<T, R> {
 export function createBatchOperation<T, R>(
   manager: BatchOperationManager
 ): BatchOperationBuilder<T, R> {
-  return new BatchOperationBuilder<T, R>(manager)
+  return new BatchOperationBuilder<T, R>(manager);
 }
 
 /**
  * Default batch operation manager instance
  */
-export const defaultBatchManager = new BatchOperationManager()
+export const defaultBatchManager = new BatchOperationManager();
 
 /**
  * Convenience functions for common batch operations
@@ -574,8 +574,6 @@ export const batchOperations = {
   update: defaultBatchManager.batchUpdate.bind(defaultBatchManager),
   delete: defaultBatchManager.batchDelete.bind(defaultBatchManager),
   transaction: defaultBatchManager.executeBatchTransaction.bind(defaultBatchManager),
-  custom: <T, R>(data: T[], operation: (item: T, index: number) => Promise<R>) => 
-    createBatchOperation<T, R>(defaultBatchManager)
-      .withData(data)
-      .withOperation(operation)
-}
+  custom: <T, R>(data: T[], operation: (item: T, index: number) => Promise<R>) =>
+    createBatchOperation<T, R>(defaultBatchManager).withData(data).withOperation(operation),
+};

@@ -2,37 +2,37 @@
  * Execution Log repository for managing streaming logs and execution output
  */
 
-import { ExecutionLog, LogLevel, type CreateExecutionLogInput } from '@imaginarium/shared'
-import { BaseRepository } from './base.repository.js'
-import { prisma } from '../database.js'
+import { ExecutionLog, LogLevel, type CreateExecutionLogInput } from '@imaginarium/shared';
+import { BaseRepository } from './base.repository.js';
+import { prisma } from '../database.js';
 
 export interface IExecutionLogRepository {
-  findByRunId(runId: string, limit?: number, offset?: number): Promise<ExecutionLog[]>
-  findByTaskId(taskId: string, limit?: number): Promise<ExecutionLog[]>
-  findByLevel(runId: string, level: LogLevel): Promise<ExecutionLog[]>
-  findByCategory(runId: string, category: string): Promise<ExecutionLog[]>
-  findStreaming(streamId: string): Promise<ExecutionLog[]>
-  createBatch(logs: CreateExecutionLogInput[]): Promise<ExecutionLog[]>
-  getLogStream(runId: string, fromSequence?: number): Promise<ExecutionLog[]>
-  searchLogs(runId: string, query: string): Promise<ExecutionLog[]>
-  getLogStats(runId: string): Promise<object>
-  getErrorLogs(runId: string): Promise<ExecutionLog[]>
-  cleanup(olderThan: Date): Promise<number>
+  findByRunId(runId: string, limit?: number, offset?: number): Promise<ExecutionLog[]>;
+  findByTaskId(taskId: string, limit?: number): Promise<ExecutionLog[]>;
+  findByLevel(runId: string, level: LogLevel): Promise<ExecutionLog[]>;
+  findByCategory(runId: string, category: string): Promise<ExecutionLog[]>;
+  findStreaming(streamId: string): Promise<ExecutionLog[]>;
+  createBatch(logs: CreateExecutionLogInput[]): Promise<ExecutionLog[]>;
+  getLogStream(runId: string, fromSequence?: number): Promise<ExecutionLog[]>;
+  searchLogs(runId: string, query: string): Promise<ExecutionLog[]>;
+  getLogStats(runId: string): Promise<object>;
+  getErrorLogs(runId: string): Promise<ExecutionLog[]>;
+  cleanup(olderThan: Date): Promise<number>;
 }
 
-export class ExecutionLogRepository 
-  extends BaseRepository<ExecutionLog, CreateExecutionLogInput, CreateExecutionLogInput> 
-  implements IExecutionLogRepository {
-  
-  protected model = prisma.executionLog
-  
+export class ExecutionLogRepository
+  extends BaseRepository<ExecutionLog, CreateExecutionLogInput, CreateExecutionLogInput>
+  implements IExecutionLogRepository
+{
+  protected model = prisma.executionLog;
+
   async create(data: CreateExecutionLogInput): Promise<ExecutionLog> {
     return await this.model.create({
       data: {
         ...data,
         metadata: data.metadata ? JSON.stringify(data.metadata) : null,
       },
-    })
+    });
   }
 
   async findByRunId(runId: string, limit = 100, offset = 0): Promise<ExecutionLog[]> {
@@ -43,7 +43,7 @@ export class ExecutionLogRepository
       },
       take: limit,
       skip: offset,
-    })
+    });
   }
 
   async findByTaskId(taskId: string, limit = 100): Promise<ExecutionLog[]> {
@@ -53,7 +53,7 @@ export class ExecutionLogRepository
         sequenceNumber: 'asc',
       },
       take: limit,
-    })
+    });
   }
 
   async findByLevel(runId: string, level: LogLevel): Promise<ExecutionLog[]> {
@@ -65,7 +65,7 @@ export class ExecutionLogRepository
       orderBy: {
         timestamp: 'desc',
       },
-    })
+    });
   }
 
   async findByCategory(runId: string, category: string): Promise<ExecutionLog[]> {
@@ -77,7 +77,7 @@ export class ExecutionLogRepository
       orderBy: {
         sequenceNumber: 'asc',
       },
-    })
+    });
   }
 
   async findStreaming(streamId: string): Promise<ExecutionLog[]> {
@@ -86,23 +86,23 @@ export class ExecutionLogRepository
       orderBy: {
         sequenceNumber: 'asc',
       },
-    })
+    });
   }
 
   async createBatch(logs: CreateExecutionLogInput[]): Promise<ExecutionLog[]> {
     const createData = logs.map(log => ({
       ...log,
       metadata: log.metadata ? JSON.stringify(log.metadata) : null,
-    }))
+    }));
 
     await this.model.createMany({
       data: createData,
-    })
+    });
 
     // Return the created logs (Prisma createMany doesn't return data)
-    const runIds = [...new Set(logs.map(log => log.runId))]
-    const maxSequence = Math.max(...logs.map(log => log.sequenceNumber))
-    const minSequence = Math.min(...logs.map(log => log.sequenceNumber))
+    const runIds = [...new Set(logs.map(log => log.runId))];
+    const maxSequence = Math.max(...logs.map(log => log.sequenceNumber));
+    const minSequence = Math.min(...logs.map(log => log.sequenceNumber));
 
     return await this.model.findMany({
       where: {
@@ -115,7 +115,7 @@ export class ExecutionLogRepository
       orderBy: {
         sequenceNumber: 'asc',
       },
-    })
+    });
   }
 
   async getLogStream(runId: string, fromSequence = 0): Promise<ExecutionLog[]> {
@@ -129,7 +129,7 @@ export class ExecutionLogRepository
       orderBy: {
         sequenceNumber: 'asc',
       },
-    })
+    });
   }
 
   async searchLogs(runId: string, query: string): Promise<ExecutionLog[]> {
@@ -144,25 +144,25 @@ export class ExecutionLogRepository
       orderBy: {
         timestamp: 'desc',
       },
-    })
+    });
   }
 
   async getLogStats(runId: string): Promise<object> {
     const [totalLogs, levelCounts, categoryCounts, errorDetails] = await Promise.all([
       this.model.count({ where: { runId } }),
-      
+
       this.model.groupBy({
         by: ['level'],
         where: { runId },
         _count: { id: true },
       }),
-      
+
       this.model.groupBy({
         by: ['category'],
         where: { runId, category: { not: null } },
         _count: { id: true },
       }),
-      
+
       this.model.findMany({
         where: {
           runId,
@@ -179,17 +179,23 @@ export class ExecutionLogRepository
         },
         take: 10,
       }),
-    ])
+    ]);
 
-    const levelMap = levelCounts.reduce((acc, { level, _count }) => {
-      acc[level] = _count.id
-      return acc
-    }, {} as Record<string, number>)
+    const levelMap = levelCounts.reduce(
+      (acc, { level, _count }) => {
+        acc[level] = _count.id;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
-    const categoryMap = categoryCounts.reduce((acc, { category, _count }) => {
-      if (category) acc[category] = _count.id
-      return acc
-    }, {} as Record<string, number>)
+    const categoryMap = categoryCounts.reduce(
+      (acc, { category, _count }) => {
+        if (category) acc[category] = _count.id;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     return {
       totalLogs,
@@ -198,7 +204,7 @@ export class ExecutionLogRepository
       errorCount: levelMap.ERROR || 0,
       warningCount: levelMap.WARN || 0,
       recentErrors: errorDetails,
-    }
+    };
   }
 
   async getErrorLogs(runId: string): Promise<ExecutionLog[]> {
@@ -220,7 +226,7 @@ export class ExecutionLogRepository
           },
         },
       },
-    })
+    });
   }
 
   async cleanup(olderThan: Date): Promise<number> {
@@ -233,26 +239,26 @@ export class ExecutionLogRepository
           in: ['DEBUG', 'INFO'], // Keep WARNING and ERROR logs longer
         },
       },
-    })
+    });
 
-    return result.count
+    return result.count;
   }
 
   /**
    * Get logs for real-time streaming
    */
   async getRealtimeLogs(
-    runId: string, 
+    runId: string,
     lastSequence: number,
     levels?: LogLevel[]
   ): Promise<ExecutionLog[]> {
     const whereClause: any = {
       runId,
       sequenceNumber: { gt: lastSequence },
-    }
+    };
 
     if (levels && levels.length > 0) {
-      whereClause.level = { in: levels }
+      whereClause.level = { in: levels };
     }
 
     return await this.model.findMany({
@@ -261,7 +267,7 @@ export class ExecutionLogRepository
         sequenceNumber: 'asc',
       },
       take: 100, // Limit for real-time streaming
-    })
+    });
   }
 
   /**
@@ -274,8 +280,8 @@ export class ExecutionLogRepository
     duration: number,
     metadata?: object
   ): Promise<ExecutionLog> {
-    const sequenceNumber = await this.getNextSequenceNumber(runId)
-    
+    const sequenceNumber = await this.getNextSequenceNumber(runId);
+
     return await this.create({
       runId,
       taskId,
@@ -290,7 +296,7 @@ export class ExecutionLogRepository
         duration,
         ...metadata,
       },
-    })
+    });
   }
 
   /**
@@ -303,8 +309,8 @@ export class ExecutionLogRepository
     errorCode?: string,
     metadata?: object
   ): Promise<ExecutionLog> {
-    const sequenceNumber = await this.getNextSequenceNumber(runId)
-    
+    const sequenceNumber = await this.getNextSequenceNumber(runId);
+
     return await this.create({
       runId,
       taskId,
@@ -319,7 +325,7 @@ export class ExecutionLogRepository
         errorName: error.name,
         ...metadata,
       },
-    })
+    });
   }
 
   /**
@@ -332,8 +338,8 @@ export class ExecutionLogRepository
     message: string,
     metadata?: object
   ): Promise<ExecutionLog> {
-    const sequenceNumber = await this.getNextSequenceNumber(runId)
-    
+    const sequenceNumber = await this.getNextSequenceNumber(runId);
+
     return await this.create({
       runId,
       taskId,
@@ -346,7 +352,7 @@ export class ExecutionLogRepository
         progress,
         ...metadata,
       },
-    })
+    });
   }
 
   /**
@@ -357,9 +363,9 @@ export class ExecutionLogRepository
       where: { runId },
       orderBy: { sequenceNumber: 'desc' },
       select: { sequenceNumber: true },
-    })
+    });
 
-    return (lastLog?.sequenceNumber || 0) + 1
+    return (lastLog?.sequenceNumber || 0) + 1;
   }
 
   /**
@@ -370,8 +376,8 @@ export class ExecutionLogRepository
     sequenceNumber: number,
     contextSize = 10
   ): Promise<ExecutionLog[]> {
-    const start = Math.max(0, sequenceNumber - contextSize)
-    const end = sequenceNumber + contextSize
+    const start = Math.max(0, sequenceNumber - contextSize);
+    const end = sequenceNumber + contextSize;
 
     return await this.model.findMany({
       where: {
@@ -384,16 +390,13 @@ export class ExecutionLogRepository
       orderBy: {
         sequenceNumber: 'asc',
       },
-    })
+    });
   }
 
   /**
    * Export logs to external format
    */
-  async exportLogs(
-    runId: string,
-    format: 'json' | 'csv' | 'text' = 'json'
-  ): Promise<string> {
+  async exportLogs(runId: string, format: 'json' | 'csv' | 'text' = 'json'): Promise<string> {
     const logs = await this.model.findMany({
       where: { runId },
       orderBy: { sequenceNumber: 'asc' },
@@ -406,36 +409,40 @@ export class ExecutionLogRepository
           },
         },
       },
-    })
+    });
 
     switch (format) {
       case 'json':
-        return JSON.stringify(logs, null, 2)
-      
+        return JSON.stringify(logs, null, 2);
+
       case 'csv':
-        const headers = 'Timestamp,Level,Category,Source,Task,Message,ErrorCode\n'
-        const rows = logs.map(log => {
-          const task = log.task ? `${log.task.nodeName} (${log.task.nodeId})` : ''
-          return [
-            log.timestamp.toISOString(),
-            log.level,
-            log.category || '',
-            log.source || '',
-            task,
-            `"${log.message.replace(/"/g, '""')}"`,
-            log.errorCode || '',
-          ].join(',')
-        }).join('\n')
-        return headers + rows
-      
+        const headers = 'Timestamp,Level,Category,Source,Task,Message,ErrorCode\n';
+        const rows = logs
+          .map(log => {
+            const task = log.task ? `${log.task.nodeName} (${log.task.nodeId})` : '';
+            return [
+              log.timestamp.toISOString(),
+              log.level,
+              log.category || '',
+              log.source || '',
+              task,
+              `"${log.message.replace(/"/g, '""')}"`,
+              log.errorCode || '',
+            ].join(',');
+          })
+          .join('\n');
+        return headers + rows;
+
       case 'text':
-        return logs.map(log => {
-          const task = log.task ? ` [${log.task.nodeName}]` : ''
-          return `${log.timestamp.toISOString()} ${log.level}${task}: ${log.message}`
-        }).join('\n')
-      
+        return logs
+          .map(log => {
+            const task = log.task ? ` [${log.task.nodeName}]` : '';
+            return `${log.timestamp.toISOString()} ${log.level}${task}: ${log.message}`;
+          })
+          .join('\n');
+
       default:
-        throw new Error(`Unsupported export format: ${format}`)
+        throw new Error(`Unsupported export format: ${format}`);
     }
   }
 
@@ -445,17 +452,20 @@ export class ExecutionLogRepository
   async getLogAggregations(
     runId: string,
     timeWindow: 'minute' | 'hour' = 'minute'
-  ): Promise<Array<{
-    timeWindow: string
-    totalLogs: number
-    errorCount: number
-    warningCount: number
-  }>> {
-    const timeFormat = timeWindow === 'minute' 
-      ? "strftime('%Y-%m-%d %H:%M', timestamp)"
-      : "strftime('%Y-%m-%d %H', timestamp)"
+  ): Promise<
+    Array<{
+      timeWindow: string;
+      totalLogs: number;
+      errorCount: number;
+      warningCount: number;
+    }>
+  > {
+    const timeFormat =
+      timeWindow === 'minute'
+        ? "strftime('%Y-%m-%d %H:%M', timestamp)"
+        : "strftime('%Y-%m-%d %H', timestamp)";
 
-    const result = await prisma.$queryRaw`
+    const result = (await prisma.$queryRaw`
       SELECT 
         ${timeFormat} as timeWindow,
         COUNT(*) as totalLogs,
@@ -465,18 +475,18 @@ export class ExecutionLogRepository
       WHERE run_id = ${runId}
       GROUP BY ${timeFormat}
       ORDER BY timeWindow ASC
-    ` as Array<{
-      timeWindow: string
-      totalLogs: bigint
-      errorCount: bigint
-      warningCount: bigint
-    }>
+    `) as Array<{
+      timeWindow: string;
+      totalLogs: bigint;
+      errorCount: bigint;
+      warningCount: bigint;
+    }>;
 
     return result.map(row => ({
       timeWindow: row.timeWindow,
       totalLogs: Number(row.totalLogs),
       errorCount: Number(row.errorCount),
       warningCount: Number(row.warningCount),
-    }))
+    }));
   }
 }

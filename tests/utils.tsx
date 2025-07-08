@@ -1,37 +1,19 @@
 import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Test utilities for React components
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   initialEntries?: string[];
-  queryClient?: QueryClient;
 }
 
 const AllTheProviders = ({
   children,
-  queryClient,
 }: {
   children: React.ReactNode;
-  queryClient?: QueryClient;
 }) => {
-  const defaultQueryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-        staleTime: Infinity,
-      },
-      mutations: {
-        retry: false,
-      },
-    },
-  });
-
   return (
-    <QueryClientProvider client={queryClient || defaultQueryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
-    </QueryClientProvider>
+    <BrowserRouter>{children}</BrowserRouter>
   );
 };
 
@@ -39,13 +21,11 @@ const customRender = (
   ui: ReactElement,
   options: CustomRenderOptions = {}
 ) => {
-  const { queryClient, ...renderOptions } = options;
-
   return render(ui, {
     wrapper: ({ children }) => (
-      <AllTheProviders queryClient={queryClient}>{children}</AllTheProviders>
+      <AllTheProviders>{children}</AllTheProviders>
     ),
-    ...renderOptions,
+    ...options,
   });
 };
 
@@ -83,7 +63,7 @@ export const createMockExecution = (overrides = {}) => ({
 });
 
 // Mock API responses
-export const mockApiResponse = <T>(data: T, delay = 0) => {
+export const mockApiResponse = <T,>(data: T, delay = 0) => {
   return new Promise<{ data: T }>((resolve) => {
     setTimeout(() => resolve({ data }), delay);
   });

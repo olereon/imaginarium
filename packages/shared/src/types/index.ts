@@ -1,4 +1,4 @@
-export interface Pipeline {
+export interface PipelineGraph {
   id: string;
   name: string;
   description?: string;
@@ -26,17 +26,17 @@ export interface PipelineConnection {
   targetHandle?: string;
 }
 
-export interface Execution {
+export interface PipelineExecution {
   id: string;
   pipelineId: string;
-  status: ExecutionStatus;
+  status: PipelineExecutionStatus;
   startedAt: Date;
   completedAt?: Date;
   error?: string;
   outputs: ExecutionOutput[];
 }
 
-export type ExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type PipelineExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 export interface ExecutionOutput {
   nodeId: string;

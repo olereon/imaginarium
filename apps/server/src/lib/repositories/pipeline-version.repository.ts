@@ -2,13 +2,21 @@
  * Pipeline Version repository for managing pipeline version history
  */
 
-import { PipelineVersion, type CreatePipelineVersionInput, type UpdatePipelineVersionInput } from '@imaginarium/shared'
-import { BaseRepository } from './base.repository.js'
-import { prisma } from '../database.js'
+import {
+  PipelineVersion,
+  type CreatePipelineVersionInput,
+  type UpdatePipelineVersionInput,
+} from '@imaginarium/shared';
+import { BaseRepository } from './base.repository.js';
+import { prisma } from '../database.js';
 
-export class PipelineVersionRepository extends BaseRepository<PipelineVersion, CreatePipelineVersionInput, UpdatePipelineVersionInput> {
+export class PipelineVersionRepository extends BaseRepository<
+  PipelineVersion,
+  CreatePipelineVersionInput,
+  UpdatePipelineVersionInput
+> {
   constructor() {
-    super(prisma.pipelineVersion)
+    super(prisma.pipelineVersion);
   }
 
   /**
@@ -18,13 +26,16 @@ export class PipelineVersionRepository extends BaseRepository<PipelineVersion, C
     return await prisma.pipelineVersion.findMany({
       where: { pipelineId },
       orderBy: { version: 'desc' },
-    })
+    });
   }
 
   /**
    * Find specific version of a pipeline
    */
-  async findByPipelineIdAndVersion(pipelineId: string, version: number): Promise<PipelineVersion | null> {
+  async findByPipelineIdAndVersion(
+    pipelineId: string,
+    version: number
+  ): Promise<PipelineVersion | null> {
     return await prisma.pipelineVersion.findUnique({
       where: {
         pipelineId_version: {
@@ -32,7 +43,7 @@ export class PipelineVersionRepository extends BaseRepository<PipelineVersion, C
           version,
         },
       },
-    })
+    });
   }
 
   /**
@@ -43,9 +54,9 @@ export class PipelineVersionRepository extends BaseRepository<PipelineVersion, C
       where: { pipelineId },
       orderBy: { version: 'desc' },
       select: { version: true },
-    })
-    
-    return latest?.version ?? 0
+    });
+
+    return latest?.version ?? 0;
   }
 
   /**
@@ -57,8 +68,8 @@ export class PipelineVersionRepository extends BaseRepository<PipelineVersion, C
     changelog: string,
     createdBy: string
   ): Promise<PipelineVersion> {
-    const latestVersion = await this.getLatestVersion(pipelineId)
-    const newVersion = latestVersion + 1
+    const latestVersion = await this.getLatestVersion(pipelineId);
+    const newVersion = latestVersion + 1;
 
     return await prisma.pipelineVersion.create({
       data: {
@@ -68,23 +79,26 @@ export class PipelineVersionRepository extends BaseRepository<PipelineVersion, C
         changelog,
         createdBy,
       },
-    })
+    });
   }
 
   /**
    * Get version history with metadata
    */
-  async getVersionHistory(pipelineId: string, limit = 50): Promise<Array<PipelineVersion & { configSize: number }>> {
+  async getVersionHistory(
+    pipelineId: string,
+    limit = 50
+  ): Promise<Array<PipelineVersion & { configSize: number }>> {
     const versions = await prisma.pipelineVersion.findMany({
       where: { pipelineId },
       orderBy: { version: 'desc' },
       take: limit,
-    })
+    });
 
     return versions.map(version => ({
       ...version,
       configSize: version.configuration.length, // Rough size indicator
-    }))
+    }));
   }
 
   /**
@@ -95,27 +109,30 @@ export class PipelineVersionRepository extends BaseRepository<PipelineVersion, C
     fromVersion: number,
     toVersion: number
   ): Promise<{
-    from: PipelineVersion | null
-    to: PipelineVersion | null
-    hasChanges: boolean
+    from: PipelineVersion | null;
+    to: PipelineVersion | null;
+    hasChanges: boolean;
   }> {
     const [from, to] = await Promise.all([
       this.findByPipelineIdAndVersion(pipelineId, fromVersion),
       this.findByPipelineIdAndVersion(pipelineId, toVersion),
-    ])
+    ]);
 
-    const hasChanges = from?.configuration !== to?.configuration
+    const hasChanges = from?.configuration !== to?.configuration;
 
-    return { from, to, hasChanges }
+    return { from, to, hasChanges };
   }
 
   /**
    * Restore pipeline to specific version
    */
-  async restoreToVersion(pipelineId: string, targetVersion: number): Promise<PipelineVersion | null> {
-    const version = await this.findByPipelineIdAndVersion(pipelineId, targetVersion)
+  async restoreToVersion(
+    pipelineId: string,
+    targetVersion: number
+  ): Promise<PipelineVersion | null> {
+    const version = await this.findByPipelineIdAndVersion(pipelineId, targetVersion);
     if (!version) {
-      return null
+      return null;
     }
 
     // Update the pipeline's current configuration to match this version
@@ -126,7 +143,7 @@ export class PipelineVersionRepository extends BaseRepository<PipelineVersion, C
         version: { increment: 1 }, // Increment main version
         updatedAt: new Date(),
       },
-    })
+    });
 
     // Create a new version entry for this restoration
     return await this.createVersion(
@@ -134,7 +151,7 @@ export class PipelineVersionRepository extends BaseRepository<PipelineVersion, C
       JSON.parse(version.configuration),
       `Restored from version ${targetVersion}`,
       version.createdBy
-    )
+    );
   }
 
   /**
@@ -145,40 +162,40 @@ export class PipelineVersionRepository extends BaseRepository<PipelineVersion, C
       where: { pipelineId },
       orderBy: { version: 'desc' },
       select: { id: true, version: true },
-    })
+    });
 
     if (versions.length <= keepCount) {
-      return 0
+      return 0;
     }
 
-    const versionsToDelete = versions.slice(keepCount)
-    const idsToDelete = versionsToDelete.map(v => v.id)
+    const versionsToDelete = versions.slice(keepCount);
+    const idsToDelete = versionsToDelete.map(v => v.id);
 
     const result = await prisma.pipelineVersion.deleteMany({
       where: {
         id: { in: idsToDelete },
       },
-    })
+    });
 
-    return result.count
+    return result.count;
   }
 
   /**
    * Get version statistics for a pipeline
    */
   async getVersionStats(pipelineId: string): Promise<{
-    totalVersions: number
-    latestVersion: number
-    oldestVersion: number
-    firstCreated: Date | null
-    lastCreated: Date | null
+    totalVersions: number;
+    latestVersion: number;
+    oldestVersion: number;
+    firstCreated: Date | null;
+    lastCreated: Date | null;
   }> {
     const stats = await prisma.pipelineVersion.aggregate({
       where: { pipelineId },
       _count: { id: true },
       _min: { version: true, createdAt: true },
       _max: { version: true, createdAt: true },
-    })
+    });
 
     return {
       totalVersions: stats._count.id,
@@ -186,6 +203,6 @@ export class PipelineVersionRepository extends BaseRepository<PipelineVersion, C
       oldestVersion: stats._min.version ?? 0,
       firstCreated: stats._min.createdAt,
       lastCreated: stats._max.createdAt,
-    }
+    };
   }
 }

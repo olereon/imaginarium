@@ -2,136 +2,179 @@
  * Performance testing factory for generating large datasets
  */
 
-import { PrismaClient } from '@prisma/client'
-import { BaseFactory } from './index'
-import { UserFactory } from './user.factory'
-import { PipelineFactory } from './pipeline.factory'
-import { ExecutionFactory } from './execution.factory'
-import { FileFactory } from './file.factory'
-import { TemplateFactory } from './template.factory'
-import type { FactoryConfig, PerformanceDatasetConfig, RelationshipConfig } from './types'
+import { PrismaClient } from '@prisma/client';
+import { BaseFactory } from './index';
+import { UserFactory } from './user.factory';
+import { PipelineFactory } from './pipeline.factory';
+import { ExecutionFactory } from './execution.factory';
+import { FileFactory } from './file.factory';
+import { TemplateFactory } from './template.factory';
+import type { FactoryConfig, PerformanceDatasetConfig, RelationshipConfig } from './types';
 
 export class PerformanceFactory extends BaseFactory<any> {
-  private userFactory: UserFactory
-  private pipelineFactory: PipelineFactory
-  private executionFactory: ExecutionFactory
-  private fileFactory: FileFactory
-  private templateFactory: TemplateFactory
+  private userFactory: UserFactory;
+  private pipelineFactory: PipelineFactory;
+  private executionFactory: ExecutionFactory;
+  private fileFactory: FileFactory;
+  private templateFactory: TemplateFactory;
 
   constructor(config: FactoryConfig) {
-    super(config)
-    this.userFactory = new UserFactory(config)
-    this.pipelineFactory = new PipelineFactory(config)
-    this.executionFactory = new ExecutionFactory(config)
-    this.fileFactory = new FileFactory(config)
-    this.templateFactory = new TemplateFactory(config)
+    super(config);
+    this.userFactory = new UserFactory(config);
+    this.pipelineFactory = new PipelineFactory(config);
+    this.executionFactory = new ExecutionFactory(config);
+    this.fileFactory = new FileFactory(config);
+    this.templateFactory = new TemplateFactory(config);
   }
 
   build(): any {
-    throw new Error('Performance factory does not support single item generation')
+    throw new Error('Performance factory does not support single item generation');
   }
 
   buildMany(): any[] {
-    throw new Error('Performance factory does not support single item generation')
+    throw new Error('Performance factory does not support single item generation');
   }
 
   async create(): Promise<any> {
-    throw new Error('Performance factory does not support single item generation')
+    throw new Error('Performance factory does not support single item generation');
   }
 
   async createMany(): Promise<any[]> {
-    throw new Error('Performance factory does not support single item generation')
+    throw new Error('Performance factory does not support single item generation');
   }
 
   /**
    * Generate a complete performance dataset
    */
-  async generatePerformanceDataset(config: PerformanceDatasetConfig, relationships: RelationshipConfig): Promise<{
-    users: any[]
-    pipelines: any[]
-    executions: any[]
-    tasks: any[]
-    logs: any[]
-    files: any[]
-    artifacts: any[]
-    templates: any[]
-    sessions: any[]
-    apiKeys: any[]
-    stats: Record<string, any>
+  async generatePerformanceDataset(
+    config: PerformanceDatasetConfig,
+    relationships: RelationshipConfig
+  ): Promise<{
+    users: any[];
+    pipelines: any[];
+    executions: any[];
+    tasks: any[];
+    logs: any[];
+    files: any[];
+    artifacts: any[];
+    templates: any[];
+    sessions: any[];
+    apiKeys: any[];
+    stats: Record<string, any>;
   }> {
-    const startTime = Date.now()
-    console.log('🚀 Starting performance dataset generation...')
-    
+    const startTime = Date.now();
+    console.log('🚀 Starting performance dataset generation...');
+
     // Clear existing data if requested
-    await this.clearDatabase()
-    
+    await this.clearDatabase();
+
     // Generate users first (required for all other entities)
-    console.log('👥 Generating users...')
-    const users = await this.generateUsers(config.users)
-    
+    console.log('👥 Generating users...');
+    const users = await this.generateUsers(config.users);
+
     // Generate templates (independent)
-    console.log('📋 Generating templates...')
-    const templates = await this.generateTemplates(config.templates)
-    
+    console.log('📋 Generating templates...');
+    const templates = await this.generateTemplates(config.templates);
+
     // Generate pipelines (requires users)
-    console.log('🔧 Generating pipelines...')
-    const pipelines = await this.generatePipelines(config.pipelines, users, relationships.userToPipelines)
-    
+    console.log('🔧 Generating pipelines...');
+    const pipelines = await this.generatePipelines(
+      config.pipelines,
+      users,
+      relationships.userToPipelines
+    );
+
     // Generate files (requires users)
-    console.log('📁 Generating files...')
-    const files = await this.generateFiles(config.files, users, relationships.userToFiles)
-    
+    console.log('📁 Generating files...');
+    const files = await this.generateFiles(config.files, users, relationships.userToFiles);
+
     // Generate executions (requires users and pipelines)
-    console.log('⚡ Generating executions...')
-    const executions = await this.generateExecutions(config.executions, users, pipelines, relationships)
-    
+    console.log('⚡ Generating executions...');
+    const executions = await this.generateExecutions(
+      config.executions,
+      users,
+      pipelines,
+      relationships
+    );
+
     // Generate tasks (requires executions)
-    console.log('📝 Generating tasks...')
-    const tasks = await this.generateTasks(executions, relationships.executionToTasks)
-    
+    console.log('📝 Generating tasks...');
+    const tasks = await this.generateTasks(executions, relationships.executionToTasks);
+
     // Generate logs (requires executions)
-    console.log('📊 Generating logs...')
-    const logs = await this.generateLogs(executions, relationships.executionToLogs)
-    
+    console.log('📊 Generating logs...');
+    const logs = await this.generateLogs(executions, relationships.executionToLogs);
+
     // Generate artifacts (requires executions and tasks)
-    console.log('🎯 Generating artifacts...')
-    const artifacts = await this.generateArtifacts(executions, tasks, relationships.taskToArtifacts)
-    
+    console.log('🎯 Generating artifacts...');
+    const artifacts = await this.generateArtifacts(
+      executions,
+      tasks,
+      relationships.taskToArtifacts
+    );
+
     // Generate sessions (requires users)
-    console.log('🔐 Generating sessions...')
-    const sessions = await this.generateSessions(users, relationships.userToSessions)
-    
+    console.log('🔐 Generating sessions...');
+    const sessions = await this.generateSessions(users, relationships.userToSessions);
+
     // Generate API keys (requires users)
-    console.log('🔑 Generating API keys...')
-    const apiKeys = await this.generateApiKeys(users, relationships.userToApiKeys)
-    
-    const endTime = Date.now()
-    const totalTime = endTime - startTime
-    
+    console.log('🔑 Generating API keys...');
+    const apiKeys = await this.generateApiKeys(users, relationships.userToApiKeys);
+
+    const endTime = Date.now();
+    const totalTime = endTime - startTime;
+
     const stats = {
       generationTime: totalTime,
-      totalRecords: users.length + pipelines.length + executions.length + tasks.length + 
-                   logs.length + files.length + artifacts.length + templates.length + 
-                   sessions.length + apiKeys.length,
+      totalRecords:
+        users.length +
+        pipelines.length +
+        executions.length +
+        tasks.length +
+        logs.length +
+        files.length +
+        artifacts.length +
+        templates.length +
+        sessions.length +
+        apiKeys.length,
       userStats: this.userFactory.generateUserStats(users),
       pipelineStats: this.pipelineFactory.generatePipelineStats(pipelines),
       executionStats: this.executionFactory.generateExecutionStats(executions),
       fileStats: this.fileFactory.generateFileStats(files),
       templateStats: this.templateFactory.generateTemplateStats(templates),
       performance: {
-        recordsPerSecond: Math.round((users.length + pipelines.length + executions.length + tasks.length + 
-                                   logs.length + files.length + artifacts.length + templates.length + 
-                                   sessions.length + apiKeys.length) / (totalTime / 1000)),
-        avgTimePerRecord: totalTime / (users.length + pipelines.length + executions.length + tasks.length + 
-                                     logs.length + files.length + artifacts.length + templates.length + 
-                                     sessions.length + apiKeys.length)
-      }
-    }
-    
-    console.log('✅ Performance dataset generation completed!')
-    console.log(`📊 Generated ${stats.totalRecords} records in ${totalTime}ms`)
-    console.log(`🚀 Performance: ${stats.performance.recordsPerSecond} records/second`)
-    
+        recordsPerSecond: Math.round(
+          (users.length +
+            pipelines.length +
+            executions.length +
+            tasks.length +
+            logs.length +
+            files.length +
+            artifacts.length +
+            templates.length +
+            sessions.length +
+            apiKeys.length) /
+            (totalTime / 1000)
+        ),
+        avgTimePerRecord:
+          totalTime /
+          (users.length +
+            pipelines.length +
+            executions.length +
+            tasks.length +
+            logs.length +
+            files.length +
+            artifacts.length +
+            templates.length +
+            sessions.length +
+            apiKeys.length),
+      },
+    };
+
+    console.log('✅ Performance dataset generation completed!');
+    console.log(`📊 Generated ${stats.totalRecords} records in ${totalTime}ms`);
+    console.log(`🚀 Performance: ${stats.performance.recordsPerSecond} records/second`);
+
     return {
       users,
       pipelines,
@@ -143,8 +186,8 @@ export class PerformanceFactory extends BaseFactory<any> {
       templates,
       sessions,
       apiKeys,
-      stats
-    }
+      stats,
+    };
   }
 
   /**
@@ -160,9 +203,9 @@ export class PerformanceFactory extends BaseFactory<any> {
       logs: 5000,
       sessions: 150,
       apiKeys: 100,
-      templates: 20
-    }
-    
+      templates: 20,
+    };
+
     const relationships: RelationshipConfig = {
       userToPipelines: 4,
       pipelineToExecutions: 5,
@@ -171,10 +214,10 @@ export class PerformanceFactory extends BaseFactory<any> {
       taskToArtifacts: 3,
       userToSessions: 3,
       userToApiKeys: 2,
-      userToFiles: 10
-    }
-    
-    return await this.generatePerformanceDataset(config, relationships)
+      userToFiles: 10,
+    };
+
+    return await this.generatePerformanceDataset(config, relationships);
   }
 
   /**
@@ -190,9 +233,9 @@ export class PerformanceFactory extends BaseFactory<any> {
       logs: 50000,
       sessions: 1500,
       apiKeys: 1000,
-      templates: 100
-    }
-    
+      templates: 100,
+    };
+
     const relationships: RelationshipConfig = {
       userToPipelines: 4,
       pipelineToExecutions: 5,
@@ -201,10 +244,10 @@ export class PerformanceFactory extends BaseFactory<any> {
       taskToArtifacts: 3,
       userToSessions: 3,
       userToApiKeys: 2,
-      userToFiles: 10
-    }
-    
-    return await this.generatePerformanceDataset(config, relationships)
+      userToFiles: 10,
+    };
+
+    return await this.generatePerformanceDataset(config, relationships);
   }
 
   /**
@@ -220,9 +263,9 @@ export class PerformanceFactory extends BaseFactory<any> {
       logs: 1000000,
       sessions: 30000,
       apiKeys: 20000,
-      templates: 1000
-    }
-    
+      templates: 1000,
+    };
+
     const relationships: RelationshipConfig = {
       userToPipelines: 5,
       pipelineToExecutions: 4,
@@ -231,10 +274,10 @@ export class PerformanceFactory extends BaseFactory<any> {
       taskToArtifacts: 2,
       userToSessions: 3,
       userToApiKeys: 2,
-      userToFiles: 10
-    }
-    
-    return await this.generatePerformanceDataset(config, relationships)
+      userToFiles: 10,
+    };
+
+    return await this.generatePerformanceDataset(config, relationships);
   }
 
   /**
@@ -250,9 +293,9 @@ export class PerformanceFactory extends BaseFactory<any> {
       logs: 10000000,
       sessions: 300000,
       apiKeys: 200000,
-      templates: 10000
-    }
-    
+      templates: 10000,
+    };
+
     const relationships: RelationshipConfig = {
       userToPipelines: 5,
       pipelineToExecutions: 4,
@@ -261,151 +304,171 @@ export class PerformanceFactory extends BaseFactory<any> {
       taskToArtifacts: 2,
       userToSessions: 3,
       userToApiKeys: 2,
-      userToFiles: 10
-    }
-    
-    return await this.generatePerformanceDataset(config, relationships)
+      userToFiles: 10,
+    };
+
+    return await this.generatePerformanceDataset(config, relationships);
   }
 
   // Private generation methods
   private async clearDatabase(): Promise<void> {
-    console.log('🧹 Clearing existing data...')
-    
+    console.log('🧹 Clearing existing data...');
+
     // Clear in order to respect foreign key constraints
-    await this.config.prisma.executionLog.deleteMany()
-    await this.config.prisma.taskExecution.deleteMany()
-    await this.config.prisma.artifact.deleteMany()
-    await this.config.prisma.pipelineRun.deleteMany()
-    await this.config.prisma.fileReference.deleteMany()
-    await this.config.prisma.thumbnail.deleteMany()
-    await this.config.prisma.fileUpload.deleteMany()
-    await this.config.prisma.pipelineVersion.deleteMany()
-    await this.config.prisma.pipelineTemplate.deleteMany()
-    await this.config.prisma.pipeline.deleteMany()
-    await this.config.prisma.apiKey.deleteMany()
-    await this.config.prisma.session.deleteMany()
-    await this.config.prisma.user.deleteMany()
-    await this.config.prisma.providerCredential.deleteMany()
-    
-    console.log('✅ Database cleared')
+    await this.config.prisma.executionLog.deleteMany();
+    await this.config.prisma.taskExecution.deleteMany();
+    await this.config.prisma.artifact.deleteMany();
+    await this.config.prisma.pipelineRun.deleteMany();
+    await this.config.prisma.fileReference.deleteMany();
+    await this.config.prisma.thumbnail.deleteMany();
+    await this.config.prisma.fileUpload.deleteMany();
+    await this.config.prisma.pipelineVersion.deleteMany();
+    await this.config.prisma.pipelineTemplate.deleteMany();
+    await this.config.prisma.pipeline.deleteMany();
+    await this.config.prisma.apiKey.deleteMany();
+    await this.config.prisma.session.deleteMany();
+    await this.config.prisma.user.deleteMany();
+    await this.config.prisma.providerCredential.deleteMany();
+
+    console.log('✅ Database cleared');
   }
 
   private async generateUsers(count: number): Promise<any[]> {
-    return await this.userFactory.createPerformanceUsers(count)
+    return await this.userFactory.createPerformanceUsers(count);
   }
 
   private async generateTemplates(count: number): Promise<any[]> {
-    return await this.templateFactory.createPerformanceTemplates(count)
+    return await this.templateFactory.createPerformanceTemplates(count);
   }
 
-  private async generatePipelines(count: number, users: any[], pipelinesPerUser: number): Promise<any[]> {
-    const pipelines: any[] = []
-    
+  private async generatePipelines(
+    count: number,
+    users: any[],
+    pipelinesPerUser: number
+  ): Promise<any[]> {
+    const pipelines: any[] = [];
+
     for (const user of users) {
-      const userPipelineCount = Math.min(pipelinesPerUser, Math.ceil(count / users.length))
-      const userPipelines = await this.pipelineFactory.createPerformancePipelines(userPipelineCount, user.id)
-      pipelines.push(...userPipelines)
-      
-      if (pipelines.length >= count) break
+      const userPipelineCount = Math.min(pipelinesPerUser, Math.ceil(count / users.length));
+      const userPipelines = await this.pipelineFactory.createPerformancePipelines(
+        userPipelineCount,
+        user.id
+      );
+      pipelines.push(...userPipelines);
+
+      if (pipelines.length >= count) break;
     }
-    
-    return pipelines.slice(0, count)
+
+    return pipelines.slice(0, count);
   }
 
   private async generateFiles(count: number, users: any[], filesPerUser: number): Promise<any[]> {
-    const files: any[] = []
-    
+    const files: any[] = [];
+
     for (const user of users) {
-      const userFileCount = Math.min(filesPerUser, Math.ceil(count / users.length))
-      const userFiles = await this.fileFactory.createPerformanceFiles(user.id, userFileCount)
-      files.push(...userFiles)
-      
-      if (files.length >= count) break
+      const userFileCount = Math.min(filesPerUser, Math.ceil(count / users.length));
+      const userFiles = await this.fileFactory.createPerformanceFiles(user.id, userFileCount);
+      files.push(...userFiles);
+
+      if (files.length >= count) break;
     }
-    
-    return files.slice(0, count)
+
+    return files.slice(0, count);
   }
 
   private async generateExecutions(
-    count: number, 
-    users: any[], 
-    pipelines: any[], 
+    count: number,
+    users: any[],
+    pipelines: any[],
     relationships: RelationshipConfig
   ): Promise<any[]> {
-    const executions: any[] = []
-    
+    const executions: any[] = [];
+
     for (const pipeline of pipelines) {
-      const executionCount = Math.min(relationships.pipelineToExecutions, Math.ceil(count / pipelines.length))
+      const executionCount = Math.min(
+        relationships.pipelineToExecutions,
+        Math.ceil(count / pipelines.length)
+      );
       const pipelineExecutions = await this.executionFactory.createPerformanceExecutions(
-        pipeline.id, 
-        pipeline.userId, 
+        pipeline.id,
+        pipeline.userId,
         executionCount
-      )
-      executions.push(...pipelineExecutions)
-      
-      if (executions.length >= count) break
+      );
+      executions.push(...pipelineExecutions);
+
+      if (executions.length >= count) break;
     }
-    
-    return executions.slice(0, count)
+
+    return executions.slice(0, count);
   }
 
   private async generateTasks(executions: any[], tasksPerExecution: number): Promise<any[]> {
-    const tasks: any[] = []
-    
+    const tasks: any[] = [];
+
     for (const execution of executions) {
-      const executionTasks = await this.executionFactory.createTaskExecutions(execution.id, tasksPerExecution)
-      tasks.push(...executionTasks)
+      const executionTasks = await this.executionFactory.createTaskExecutions(
+        execution.id,
+        tasksPerExecution
+      );
+      tasks.push(...executionTasks);
     }
-    
-    return tasks
+
+    return tasks;
   }
 
   private async generateLogs(executions: any[], logsPerExecution: number): Promise<any[]> {
-    const logs: any[] = []
-    
+    const logs: any[] = [];
+
     for (const execution of executions) {
-      const executionLogs = await this.executionFactory.createExecutionLogs(execution.id, logsPerExecution)
-      logs.push(...executionLogs)
+      const executionLogs = await this.executionFactory.createExecutionLogs(
+        execution.id,
+        logsPerExecution
+      );
+      logs.push(...executionLogs);
     }
-    
-    return logs
+
+    return logs;
   }
 
-  private async generateArtifacts(executions: any[], tasks: any[], artifactsPerTask: number): Promise<any[]> {
-    const artifacts: any[] = []
-    
+  private async generateArtifacts(
+    executions: any[],
+    tasks: any[],
+    artifactsPerTask: number
+  ): Promise<any[]> {
+    const artifacts: any[] = [];
+
     for (const task of tasks) {
-      const taskArtifacts = await this.fileFactory.createArtifacts(task.runId, artifactsPerTask)
-      artifacts.push(...taskArtifacts)
+      const taskArtifacts = await this.fileFactory.createArtifacts(task.runId, artifactsPerTask);
+      artifacts.push(...taskArtifacts);
     }
-    
-    return artifacts
+
+    return artifacts;
   }
 
   private async generateSessions(users: any[], sessionsPerUser: number): Promise<any[]> {
-    const sessions: any[] = []
-    
+    const sessions: any[] = [];
+
     for (const user of users) {
       for (let i = 0; i < sessionsPerUser; i++) {
-        const session = await this.createSession(user.id)
-        sessions.push(session)
+        const session = await this.createSession(user.id);
+        sessions.push(session);
       }
     }
-    
-    return sessions
+
+    return sessions;
   }
 
   private async generateApiKeys(users: any[], keysPerUser: number): Promise<any[]> {
-    const apiKeys: any[] = []
-    
+    const apiKeys: any[] = [];
+
     for (const user of users) {
       for (let i = 0; i < keysPerUser; i++) {
-        const apiKey = await this.createApiKey(user.id)
-        apiKeys.push(apiKey)
+        const apiKey = await this.createApiKey(user.id);
+        apiKeys.push(apiKey);
       }
     }
-    
-    return apiKeys
+
+    return apiKeys;
   }
 
   private async createSession(userId: string): Promise<any> {
@@ -418,24 +481,32 @@ export class PerformanceFactory extends BaseFactory<any> {
         userAgent: this.randomElement([
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
           'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-          'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
+          'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
         ]),
         ipAddress: `192.168.1.${this.randomInt(1, 255)}`,
         deviceType: this.randomElement(['desktop', 'mobile', 'tablet']),
         browser: this.randomElement(['chrome', 'firefox', 'safari', 'edge']),
         os: this.randomElement(['windows', 'macos', 'linux', 'ios', 'android']),
         country: this.randomElement(['US', 'UK', 'CA', 'DE', 'FR', 'AU', 'JP']),
-        city: this.randomElement(['New York', 'London', 'Toronto', 'Berlin', 'Paris', 'Sydney', 'Tokyo']),
+        city: this.randomElement([
+          'New York',
+          'London',
+          'Toronto',
+          'Berlin',
+          'Paris',
+          'Sydney',
+          'Tokyo',
+        ]),
         sessionType: this.randomElement(['WEB', 'MOBILE', 'API', 'CLI']),
         isRevoked: this.randomBoolean(0.05),
-        lastUsedAt: this.randomDate(1)
-      }
-    })
+        lastUsedAt: this.randomDate(1),
+      },
+    });
   }
 
   private async createApiKey(userId: string): Promise<any> {
-    const key = this.generateApiKey()
-    
+    const key = this.generateApiKey();
+
     return await this.config.prisma.apiKey.create({
       data: {
         userId,
@@ -450,41 +521,41 @@ export class PerformanceFactory extends BaseFactory<any> {
         totalRequests: this.randomInt(0, 100000),
         lastUsedAt: this.randomBoolean(0.7) ? this.randomDate(30) : null,
         lastUsedIp: `192.168.1.${this.randomInt(1, 255)}`,
-        expiresAt: this.randomBoolean(0.3) ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null, // 1 year
+        expiresAt: this.randomBoolean(0.3)
+          ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+          : null, // 1 year
         isActive: this.randomBoolean(0.9),
-        isRevoked: this.randomBoolean(0.05)
-      }
-    })
+        isRevoked: this.randomBoolean(0.05),
+      },
+    });
   }
 
   private generateToken(): string {
-    return Array.from({ length: 64 }, () => 
-      Math.floor(Math.random() * 36).toString(36)
-    ).join('')
+    return Array.from({ length: 64 }, () => Math.floor(Math.random() * 36).toString(36)).join('');
   }
 
   private generateApiKey(): string {
-    const prefix = 'sk-'
-    const key = Array.from({ length: 48 }, () => 
-      Math.floor(Math.random() * 36).toString(36)
-    ).join('')
-    return prefix + key
+    const prefix = 'sk-';
+    const key = Array.from({ length: 48 }, () => Math.floor(Math.random() * 36).toString(36)).join(
+      ''
+    );
+    return prefix + key;
   }
 
   /**
    * Generate realistic time-series data
    */
   async generateTimeSeriesData(days: number = 30): Promise<any[]> {
-    const data: any[] = []
-    const now = new Date()
-    
+    const data: any[] = [];
+    const now = new Date();
+
     for (let i = days; i >= 0; i--) {
-      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-      
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+
       // Generate hourly data points
       for (let hour = 0; hour < 24; hour++) {
-        const timestamp = new Date(date.getTime() + hour * 60 * 60 * 1000)
-        
+        const timestamp = new Date(date.getTime() + hour * 60 * 60 * 1000);
+
         data.push({
           timestamp,
           executions: this.randomInt(10, 100),
@@ -495,94 +566,101 @@ export class PerformanceFactory extends BaseFactory<any> {
           memoryUsage: this.randomInt(500, 2000),
           cpuUsage: this.randomInt(20, 80),
           diskUsage: this.randomInt(30, 70),
-          networkTraffic: this.randomInt(1000, 50000)
-        })
+          networkTraffic: this.randomInt(1000, 50000),
+        });
       }
     }
-    
-    return data
+
+    return data;
   }
 
   /**
    * Generate realistic user activity patterns
    */
   async generateUserActivityData(users: any[], days: number = 30): Promise<any[]> {
-    const activities: any[] = []
-    
+    const activities: any[] = [];
+
     for (const user of users) {
-      const userActivities = this.generateUserActivities(user.id, days)
-      activities.push(...userActivities)
+      const userActivities = this.generateUserActivities(user.id, days);
+      activities.push(...userActivities);
     }
-    
-    return activities
+
+    return activities;
   }
 
   private generateUserActivities(userId: string, days: number): any[] {
-    const activities: any[] = []
-    const now = new Date()
-    
+    const activities: any[] = [];
+    const now = new Date();
+
     for (let i = days; i >= 0; i--) {
-      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-      
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+
       // Skip some days to simulate realistic usage patterns
-      if (this.randomBoolean(0.3)) continue
-      
+      if (this.randomBoolean(0.3)) continue;
+
       // Generate activities for this day
-      const activityCount = this.randomInt(1, 20)
-      
+      const activityCount = this.randomInt(1, 20);
+
       for (let j = 0; j < activityCount; j++) {
-        const timestamp = new Date(date.getTime() + this.randomInt(0, 24 * 60 * 60 * 1000))
-        
+        const timestamp = new Date(date.getTime() + this.randomInt(0, 24 * 60 * 60 * 1000));
+
         activities.push({
           userId,
           timestamp,
-          type: this.randomElement(['login', 'logout', 'pipeline_created', 'pipeline_executed', 'file_uploaded', 'settings_changed']),
+          type: this.randomElement([
+            'login',
+            'logout',
+            'pipeline_created',
+            'pipeline_executed',
+            'file_uploaded',
+            'settings_changed',
+          ]),
           details: JSON.stringify({
             userAgent: 'Mozilla/5.0 (compatible; Imaginarium/1.0)',
             ip: `192.168.1.${this.randomInt(1, 255)}`,
-            duration: this.randomInt(1000, 300000)
-          })
-        })
+            duration: this.randomInt(1000, 300000),
+          }),
+        });
       }
     }
-    
-    return activities
+
+    return activities;
   }
 
   /**
    * Generate benchmark data for performance testing
    */
   async generateBenchmarkData(): Promise<{
-    queryBenchmarks: any[]
-    insertBenchmarks: any[]
-    updateBenchmarks: any[]
-    deleteBenchmarks: any[]
+    queryBenchmarks: any[];
+    insertBenchmarks: any[];
+    updateBenchmarks: any[];
+    deleteBenchmarks: any[];
   }> {
-    const queryBenchmarks = await this.generateQueryBenchmarks()
-    const insertBenchmarks = await this.generateInsertBenchmarks()
-    const updateBenchmarks = await this.generateUpdateBenchmarks()
-    const deleteBenchmarks = await this.generateDeleteBenchmarks()
-    
+    const queryBenchmarks = await this.generateQueryBenchmarks();
+    const insertBenchmarks = await this.generateInsertBenchmarks();
+    const updateBenchmarks = await this.generateUpdateBenchmarks();
+    const deleteBenchmarks = await this.generateDeleteBenchmarks();
+
     return {
       queryBenchmarks,
       insertBenchmarks,
       updateBenchmarks,
-      deleteBenchmarks
-    }
+      deleteBenchmarks,
+    };
   }
 
   private async generateQueryBenchmarks(): Promise<any[]> {
-    const benchmarks: any[] = []
-    
+    const benchmarks: any[] = [];
+
     // Simple queries
     benchmarks.push({
       name: 'Simple User Query',
       query: 'SELECT * FROM users WHERE email = ?',
       params: ['test@example.com'],
       expectedRows: 1,
-      category: 'simple'
-    })
-    
+      category: 'simple',
+    });
+
     // Complex queries
     benchmarks.push({
       name: 'Complex Pipeline Query',
@@ -598,9 +676,9 @@ export class PerformanceFactory extends BaseFactory<any> {
       `,
       params: [],
       expectedRows: 10,
-      category: 'complex'
-    })
-    
+      category: 'complex',
+    });
+
     // Aggregation queries
     benchmarks.push({
       name: 'Daily Statistics',
@@ -617,10 +695,10 @@ export class PerformanceFactory extends BaseFactory<any> {
       `,
       params: [],
       expectedRows: 30,
-      category: 'aggregation'
-    })
-    
-    return benchmarks
+      category: 'aggregation',
+    });
+
+    return benchmarks;
   }
 
   private async generateInsertBenchmarks(): Promise<any[]> {
@@ -630,23 +708,23 @@ export class PerformanceFactory extends BaseFactory<any> {
         operation: 'INSERT INTO users (id, email, passwordHash, name) VALUES (?, ?, ?, ?)',
         batchSize: 1,
         iterations: 1000,
-        category: 'single'
+        category: 'single',
       },
       {
         name: 'Batch User Insert',
         operation: 'INSERT INTO users (id, email, passwordHash, name) VALUES (?, ?, ?, ?)',
         batchSize: 100,
         iterations: 100,
-        category: 'batch'
+        category: 'batch',
       },
       {
         name: 'Bulk Pipeline Insert',
         operation: 'INSERT INTO pipelines (id, userId, name, configuration) VALUES (?, ?, ?, ?)',
         batchSize: 500,
         iterations: 20,
-        category: 'bulk'
-      }
-    ]
+        category: 'bulk',
+      },
+    ];
   }
 
   private async generateUpdateBenchmarks(): Promise<any[]> {
@@ -656,23 +734,23 @@ export class PerformanceFactory extends BaseFactory<any> {
         operation: 'UPDATE users SET lastLoginAt = ? WHERE id = ?',
         batchSize: 1,
         iterations: 1000,
-        category: 'single'
+        category: 'single',
       },
       {
         name: 'Batch Pipeline Update',
         operation: 'UPDATE pipelines SET updatedAt = ? WHERE userId = ?',
         batchSize: 100,
         iterations: 100,
-        category: 'batch'
+        category: 'batch',
       },
       {
         name: 'Bulk Status Update',
         operation: 'UPDATE pipeline_runs SET status = ? WHERE status = ?',
         batchSize: 1000,
         iterations: 10,
-        category: 'bulk'
-      }
-    ]
+        category: 'bulk',
+      },
+    ];
   }
 
   private async generateDeleteBenchmarks(): Promise<any[]> {
@@ -682,23 +760,23 @@ export class PerformanceFactory extends BaseFactory<any> {
         operation: 'DELETE FROM execution_logs WHERE id = ?',
         batchSize: 1,
         iterations: 1000,
-        category: 'single'
+        category: 'single',
       },
       {
         name: 'Batch Delete',
         operation: 'DELETE FROM execution_logs WHERE runId = ?',
         batchSize: 100,
         iterations: 100,
-        category: 'batch'
+        category: 'batch',
       },
       {
         name: 'Bulk Cleanup',
         operation: 'DELETE FROM execution_logs WHERE timestamp < ?',
         batchSize: 10000,
         iterations: 5,
-        category: 'bulk'
-      }
-    ]
+        category: 'bulk',
+      },
+    ];
   }
 
   /**
@@ -717,8 +795,8 @@ export class PerformanceFactory extends BaseFactory<any> {
           { endpoint: '/api/pipelines', method: 'POST', weight: 10 },
           { endpoint: '/api/pipelines/:id/execute', method: 'POST', weight: 20 },
           { endpoint: '/api/executions', method: 'GET', weight: 25 },
-          { endpoint: '/api/files', method: 'POST', weight: 15 }
-        ]
+          { endpoint: '/api/files', method: 'POST', weight: 15 },
+        ],
       },
       {
         name: 'High Load',
@@ -730,8 +808,8 @@ export class PerformanceFactory extends BaseFactory<any> {
           { endpoint: '/api/pipelines', method: 'GET', weight: 40 },
           { endpoint: '/api/pipelines', method: 'POST', weight: 15 },
           { endpoint: '/api/pipelines/:id/execute', method: 'POST', weight: 30 },
-          { endpoint: '/api/executions', method: 'GET', weight: 15 }
-        ]
+          { endpoint: '/api/executions', method: 'GET', weight: 15 },
+        ],
       },
       {
         name: 'Stress Test',
@@ -741,9 +819,9 @@ export class PerformanceFactory extends BaseFactory<any> {
         rampUp: 2,
         requests: [
           { endpoint: '/api/pipelines/:id/execute', method: 'POST', weight: 60 },
-          { endpoint: '/api/executions', method: 'GET', weight: 40 }
-        ]
-      }
-    ]
+          { endpoint: '/api/executions', method: 'GET', weight: 40 },
+        ],
+      },
+    ];
   }
 }

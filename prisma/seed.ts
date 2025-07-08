@@ -1,14 +1,14 @@
-import { PrismaClient } from '@prisma/client'
-import { hash } from 'bcryptjs'
-import { loadAllFixtures } from './fixtures'
+import { PrismaClient } from '@prisma/client';
+import { hash } from 'bcryptjs';
+import { loadAllFixtures } from './fixtures';
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seeding...')
+  console.log('🌱 Starting database seeding...');
 
   // Create admin user
-  const adminPassword = await hash('admin123', 12)
+  const adminPassword = await hash('admin123', 12);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@imaginarium.dev' },
     update: {},
@@ -26,12 +26,12 @@ async function main() {
       maxPipelines: 100,
       maxExecutionsPerMonth: 10000,
     },
-  })
+  });
 
-  console.log('✅ Created admin user:', admin.email)
+  console.log('✅ Created admin user:', admin.email);
 
   // Create demo user
-  const userPassword = await hash('demo123', 12)
+  const userPassword = await hash('demo123', 12);
   const demoUser = await prisma.user.upsert({
     where: { email: 'demo@imaginarium.dev' },
     update: {},
@@ -53,9 +53,9 @@ async function main() {
       maxPipelines: 25,
       maxExecutionsPerMonth: 500,
     },
-  })
+  });
 
-  console.log('✅ Created demo user:', demoUser.email)
+  console.log('✅ Created demo user:', demoUser.email);
 
   // Create sample pipeline
   const samplePipeline = await prisma.pipeline.upsert({
@@ -120,9 +120,9 @@ async function main() {
         difficulty: 'beginner',
       }),
     },
-  })
+  });
 
-  console.log('✅ Created sample pipeline:', samplePipeline.name)
+  console.log('✅ Created sample pipeline:', samplePipeline.name);
 
   // Create pipeline template
   const template = await prisma.pipelineTemplate.upsert({
@@ -224,9 +224,9 @@ async function main() {
         },
       }),
     },
-  })
+  });
 
-  console.log('✅ Created pipeline template:', template.name)
+  console.log('✅ Created pipeline template:', template.name);
 
   // Create provider credentials (placeholder - these would be encrypted in real use)
   const openaiCreds = await prisma.providerCredential.upsert({
@@ -242,9 +242,9 @@ async function main() {
       isDefault: true,
       isActive: true,
     },
-  })
+  });
 
-  console.log('✅ Created OpenAI credentials placeholder')
+  console.log('✅ Created OpenAI credentials placeholder');
 
   // Create sample execution
   const execution = await prisma.pipelineRun.create({
@@ -271,9 +271,9 @@ async function main() {
       startedAt: new Date(Date.now() - 20000),
       completedAt: new Date(Date.now() - 5000),
     },
-  })
+  });
 
-  console.log('✅ Created sample execution:', execution.id)
+  console.log('✅ Created sample execution:', execution.id);
 
   // Create execution logs
   await prisma.executionLog.createMany({
@@ -309,37 +309,37 @@ async function main() {
         timestamp: new Date(Date.now() - 5000),
       },
     ],
-  })
+  });
 
-  console.log('✅ Created execution logs')
+  console.log('✅ Created execution logs');
 
   // Load fixture templates
-  console.log('📦 Loading fixture templates...')
-  const fixtureResults = await loadAllFixtures(prisma)
-  const successCount = fixtureResults.filter(r => r.success).length
-  const failureCount = fixtureResults.filter(r => !r.success).length
-  console.log(`✅ Loaded ${successCount} fixture templates`)
+  console.log('📦 Loading fixture templates...');
+  const fixtureResults = await loadAllFixtures(prisma);
+  const successCount = fixtureResults.filter(r => r.success).length;
+  const failureCount = fixtureResults.filter(r => !r.success).length;
+  console.log(`✅ Loaded ${successCount} fixture templates`);
   if (failureCount > 0) {
-    console.log(`⚠️  Failed to load ${failureCount} fixture templates`)
+    console.log(`⚠️  Failed to load ${failureCount} fixture templates`);
   }
 
-  console.log('🎉 Database seeding completed successfully!')
-  console.log('')
-  console.log('👤 Test accounts:')
-  console.log('   Admin: admin@imaginarium.dev / admin123')
-  console.log('   Demo:  demo@imaginarium.dev / demo123')
-  console.log('')
-  console.log('📦 Template fixtures:')
-  console.log(`   Loaded ${successCount} pipeline templates`)
-  console.log('')
-  console.log('🔗 Run `npm run prisma:studio` to explore the database')
+  console.log('🎉 Database seeding completed successfully!');
+  console.log('');
+  console.log('👤 Test accounts:');
+  console.log('   Admin: admin@imaginarium.dev / admin123');
+  console.log('   Demo:  demo@imaginarium.dev / demo123');
+  console.log('');
+  console.log('📦 Template fixtures:');
+  console.log(`   Loaded ${successCount} pipeline templates`);
+  console.log('');
+  console.log('🔗 Run `npm run prisma:studio` to explore the database');
 }
 
 main()
-  .catch((e) => {
-    console.error('❌ Seeding failed:', e)
-    process.exit(1)
+  .catch(e => {
+    console.error('❌ Seeding failed:', e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });

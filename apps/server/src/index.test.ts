@@ -30,10 +30,10 @@ describe('Server', () => {
 
   it('should create an Express app', async () => {
     const express = await import('express');
-    
+
     // Import the server module to trigger app creation
     await import('./index');
-    
+
     expect(express.default).toHaveBeenCalled();
   });
 
@@ -56,9 +56,6 @@ describe('Server', () => {
     // Import the server module
     await import('./index');
 
-    expect(mockApp.listen).toHaveBeenCalledWith(
-      expect.any(Number),
-      expect.any(Function)
-    );
+    expect(mockApp.listen).toHaveBeenCalledWith(expect.any(Number), expect.any(Function));
   });
 });

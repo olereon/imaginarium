@@ -158,8 +158,18 @@ describe('PipelineEngine', () => {
     });
 
     it('should generate unique IDs for pipelines', async () => {
-      const pipeline1 = await engine.createPipeline({ name: 'Pipeline 1', nodes: [], connections: [], version: '1.0.0' });
-      const pipeline2 = await engine.createPipeline({ name: 'Pipeline 2', nodes: [], connections: [], version: '1.0.0' });
+      const pipeline1 = await engine.createPipeline({
+        name: 'Pipeline 1',
+        nodes: [],
+        connections: [],
+        version: '1.0.0',
+      });
+      const pipeline2 = await engine.createPipeline({
+        name: 'Pipeline 2',
+        nodes: [],
+        connections: [],
+        version: '1.0.0',
+      });
 
       expect(pipeline1.id).not.toBe(pipeline2.id);
     });

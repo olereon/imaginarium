@@ -2,33 +2,38 @@
  * Task Execution repository for managing individual node executions
  */
 
-import { TaskExecution, ExecutionStatus, type CreateTaskExecutionInput, type UpdateTaskExecutionInput } from '@imaginarium/shared'
-import { BaseRepository } from './base.repository.js'
-import { prisma } from '../database.js'
+import {
+  TaskExecution,
+  ExecutionStatus,
+  type CreateTaskExecutionInput,
+  type UpdateTaskExecutionInput,
+} from '@imaginarium/shared';
+import { BaseRepository } from './base.repository.js';
+import { prisma } from '../database.js';
 
 export interface ITaskExecutionRepository {
-  findByRunId(runId: string): Promise<TaskExecution[]>
-  findByNodeId(runId: string, nodeId: string): Promise<TaskExecution | null>
-  findReady(runId: string): Promise<TaskExecution[]>
-  findRunning(): Promise<TaskExecution[]>
-  findWithLogs(id: string): Promise<TaskExecution & { logs: any[] } | null>
-  updateProgress(id: string, progress: number, state?: object): Promise<TaskExecution>
-  markStarted(id: string, executorId?: string, workerId?: string): Promise<TaskExecution>
-  markCompleted(id: string, outputs: object, metrics?: object): Promise<TaskExecution>
-  markFailed(id: string, error: object, failureReason?: string): Promise<TaskExecution>
-  retry(id: string): Promise<TaskExecution>
-  getDependencies(id: string): Promise<string[]>
-  areDependenciesComplete(id: string): Promise<boolean>
-  getExecutionOrder(runId: string): Promise<TaskExecution[]>
-  updateCache(id: string, cacheKey: string, cached: boolean): Promise<TaskExecution>
+  findByRunId(runId: string): Promise<TaskExecution[]>;
+  findByNodeId(runId: string, nodeId: string): Promise<TaskExecution | null>;
+  findReady(runId: string): Promise<TaskExecution[]>;
+  findRunning(): Promise<TaskExecution[]>;
+  findWithLogs(id: string): Promise<(TaskExecution & { logs: any[] }) | null>;
+  updateProgress(id: string, progress: number, state?: object): Promise<TaskExecution>;
+  markStarted(id: string, executorId?: string, workerId?: string): Promise<TaskExecution>;
+  markCompleted(id: string, outputs: object, metrics?: object): Promise<TaskExecution>;
+  markFailed(id: string, error: object, failureReason?: string): Promise<TaskExecution>;
+  retry(id: string): Promise<TaskExecution>;
+  getDependencies(id: string): Promise<string[]>;
+  areDependenciesComplete(id: string): Promise<boolean>;
+  getExecutionOrder(runId: string): Promise<TaskExecution[]>;
+  updateCache(id: string, cacheKey: string, cached: boolean): Promise<TaskExecution>;
 }
 
-export class TaskExecutionRepository 
-  extends BaseRepository<TaskExecution, CreateTaskExecutionInput, UpdateTaskExecutionInput> 
-  implements ITaskExecutionRepository {
-  
-  protected model = prisma.taskExecution
-  
+export class TaskExecutionRepository
+  extends BaseRepository<TaskExecution, CreateTaskExecutionInput, UpdateTaskExecutionInput>
+  implements ITaskExecutionRepository
+{
+  protected model = prisma.taskExecution;
+
   async create(data: CreateTaskExecutionInput): Promise<TaskExecution> {
     return await this.model.create({
       data: {
@@ -36,7 +41,7 @@ export class TaskExecutionRepository
         configuration: JSON.stringify(data.configuration),
         dependencies: data.dependencies ? JSON.stringify(data.dependencies) : null,
       },
-    })
+    });
   }
 
   async findByRunId(runId: string): Promise<TaskExecution[]> {
@@ -45,7 +50,7 @@ export class TaskExecutionRepository
       orderBy: {
         executionOrder: 'asc',
       },
-    })
+    });
   }
 
   async findByNodeId(runId: string, nodeId: string): Promise<TaskExecution | null> {
@@ -54,7 +59,7 @@ export class TaskExecutionRepository
         runId,
         nodeId,
       },
-    })
+    });
   }
 
   async findReady(runId: string): Promise<TaskExecution[]> {
@@ -66,19 +71,19 @@ export class TaskExecutionRepository
       orderBy: {
         executionOrder: 'asc',
       },
-    })
+    });
 
     // Filter tasks whose dependencies are complete
-    const readyTasks: TaskExecution[] = []
-    
+    const readyTasks: TaskExecution[] = [];
+
     for (const task of tasks) {
-      const dependenciesComplete = await this.areDependenciesComplete(task.id)
+      const dependenciesComplete = await this.areDependenciesComplete(task.id);
       if (dependenciesComplete) {
-        readyTasks.push(task)
+        readyTasks.push(task);
       }
     }
 
-    return readyTasks
+    return readyTasks;
   }
 
   async findRunning(): Promise<TaskExecution[]> {
@@ -95,10 +100,10 @@ export class TaskExecutionRepository
           },
         },
       },
-    })
+    });
   }
 
-  async findWithLogs(id: string): Promise<TaskExecution & { logs: any[] } | null> {
+  async findWithLogs(id: string): Promise<(TaskExecution & { logs: any[] }) | null> {
     return await this.model.findUnique({
       where: { id },
       include: {
@@ -108,23 +113,23 @@ export class TaskExecutionRepository
           },
         },
       },
-    })
+    });
   }
 
   async updateProgress(id: string, progress: number, state?: object): Promise<TaskExecution> {
     const updateData: any = {
       progress,
       lastUpdateAt: new Date(),
-    }
+    };
 
     if (state) {
-      updateData.state = JSON.stringify(state)
+      updateData.state = JSON.stringify(state);
     }
 
     return await this.model.update({
       where: { id },
       data: updateData,
-    })
+    });
   }
 
   async markStarted(id: string, executorId?: string, workerId?: string): Promise<TaskExecution> {
@@ -137,7 +142,7 @@ export class TaskExecutionRepository
         workerId,
         lastUpdateAt: new Date(),
       },
-    })
+    });
   }
 
   async markCompleted(id: string, outputs: object, metrics?: object): Promise<TaskExecution> {
@@ -147,20 +152,20 @@ export class TaskExecutionRepository
       completedAt: new Date(),
       progress: 1.0,
       lastUpdateAt: new Date(),
-    }
+    };
 
     if (metrics) {
-      if (metrics.duration) updateData.duration = metrics.duration
-      if (metrics.tokensUsed) updateData.tokensUsed = metrics.tokensUsed
-      if (metrics.cost) updateData.cost = metrics.cost
-      if (metrics.memoryUsage) updateData.memoryUsage = metrics.memoryUsage
-      if (metrics.cpuTime) updateData.cpuTime = metrics.cpuTime
+      if (metrics.duration) updateData.duration = metrics.duration;
+      if (metrics.tokensUsed) updateData.tokensUsed = metrics.tokensUsed;
+      if (metrics.cost) updateData.cost = metrics.cost;
+      if (metrics.memoryUsage) updateData.memoryUsage = metrics.memoryUsage;
+      if (metrics.cpuTime) updateData.cpuTime = metrics.cpuTime;
     }
 
     return await this.model.update({
       where: { id },
       data: updateData,
-    })
+    });
   }
 
   async markFailed(id: string, error: object, failureReason?: string): Promise<TaskExecution> {
@@ -173,22 +178,22 @@ export class TaskExecutionRepository
         completedAt: new Date(),
         lastUpdateAt: new Date(),
       },
-    })
+    });
   }
 
   async retry(id: string): Promise<TaskExecution> {
-    const task = await this.model.findUnique({ where: { id } })
+    const task = await this.model.findUnique({ where: { id } });
     if (!task) {
-      throw new Error('Task execution not found')
+      throw new Error('Task execution not found');
     }
 
     if (task.retryCount >= task.maxRetries) {
-      throw new Error('Maximum retry count exceeded')
+      throw new Error('Maximum retry count exceeded');
     }
 
     // Calculate retry delay with exponential backoff
-    const baseDelay = task.retryDelay || 1000
-    const retryDelay = baseDelay * Math.pow(2, task.retryCount)
+    const baseDelay = task.retryDelay || 1000;
+    const retryDelay = baseDelay * Math.pow(2, task.retryCount);
 
     return await this.model.update({
       where: { id },
@@ -204,23 +209,23 @@ export class TaskExecutionRepository
         queuedAt: new Date(Date.now() + retryDelay),
         lastUpdateAt: new Date(),
       },
-    })
+    });
   }
 
   async getDependencies(id: string): Promise<string[]> {
     const task = await this.model.findUnique({
       where: { id },
       select: { dependencies: true },
-    })
+    });
 
     if (!task?.dependencies) {
-      return []
+      return [];
     }
 
     try {
-      return JSON.parse(task.dependencies) as string[]
+      return JSON.parse(task.dependencies) as string[];
     } catch {
-      return []
+      return [];
     }
   }
 
@@ -228,21 +233,21 @@ export class TaskExecutionRepository
     const task = await this.model.findUnique({
       where: { id },
       select: { dependencies: true, runId: true },
-    })
+    });
 
     if (!task?.dependencies) {
-      return true // No dependencies
+      return true; // No dependencies
     }
 
-    let dependencyNodeIds: string[]
+    let dependencyNodeIds: string[];
     try {
-      dependencyNodeIds = JSON.parse(task.dependencies) as string[]
+      dependencyNodeIds = JSON.parse(task.dependencies) as string[];
     } catch {
-      return true // Invalid dependencies JSON, assume no dependencies
+      return true; // Invalid dependencies JSON, assume no dependencies
     }
 
     if (dependencyNodeIds.length === 0) {
-      return true
+      return true;
     }
 
     // Check if all dependency tasks are completed
@@ -252,19 +257,16 @@ export class TaskExecutionRepository
         nodeId: { in: dependencyNodeIds },
       },
       select: { status: true },
-    })
+    });
 
-    return dependencyTasks.every(dep => dep.status === 'COMPLETED')
+    return dependencyTasks.every(dep => dep.status === 'COMPLETED');
   }
 
   async getExecutionOrder(runId: string): Promise<TaskExecution[]> {
     return await this.model.findMany({
       where: { runId },
-      orderBy: [
-        { executionOrder: 'asc' },
-        { queuedAt: 'asc' },
-      ],
-    })
+      orderBy: [{ executionOrder: 'asc' }, { queuedAt: 'asc' }],
+    });
   }
 
   async updateCache(id: string, cacheKey: string, cached: boolean): Promise<TaskExecution> {
@@ -275,7 +277,7 @@ export class TaskExecutionRepository
         cached,
         lastUpdateAt: new Date(),
       },
-    })
+    });
   }
 
   /**
@@ -289,7 +291,7 @@ export class TaskExecutionRepository
           lte: new Date(),
         },
       },
-    })
+    });
   }
 
   /**
@@ -302,7 +304,7 @@ export class TaskExecutionRepository
         checkpoint: JSON.stringify(checkpoint),
         lastUpdateAt: new Date(),
       },
-    })
+    });
   }
 
   /**
@@ -324,10 +326,10 @@ export class TaskExecutionRepository
         completedAt: true,
         progress: true,
       },
-    })
+    });
 
     if (!task) {
-      throw new Error('Task execution not found')
+      throw new Error('Task execution not found');
     }
 
     return {
@@ -336,33 +338,36 @@ export class TaskExecutionRepository
       totalTime: task.completedAt ? task.completedAt.getTime() - task.queuedAt.getTime() : null,
       executionTime: task.duration,
       cacheHit: task.cached,
-    }
+    };
   }
 
   /**
    * Get task execution statistics for a node type
    */
-  async getNodeTypeStats(nodeType: string, timeRange?: { start: Date; end: Date }): Promise<object> {
-    const whereClause: any = { nodeType }
-    
+  async getNodeTypeStats(
+    nodeType: string,
+    timeRange?: { start: Date; end: Date }
+  ): Promise<object> {
+    const whereClause: any = { nodeType };
+
     if (timeRange) {
       whereClause.queuedAt = {
         gte: timeRange.start,
         lte: timeRange.end,
-      }
+      };
     }
 
     const [totalTasks, statusCounts, avgMetrics] = await Promise.all([
       this.model.count({ where: whereClause }),
-      
+
       this.model.groupBy({
         by: ['status'],
         where: whereClause,
         _count: { id: true },
       }),
-      
+
       this.model.aggregate({
-        where: { 
+        where: {
           ...whereClause,
           status: 'COMPLETED',
           duration: { not: null },
@@ -375,12 +380,15 @@ export class TaskExecutionRepository
           retryCount: true,
         },
       }),
-    ])
+    ]);
 
-    const statusMap = statusCounts.reduce((acc, { status, _count }) => {
-      acc[status] = _count.id
-      return acc
-    }, {} as Record<string, number>)
+    const statusMap = statusCounts.reduce(
+      (acc, { status, _count }) => {
+        acc[status] = _count.id;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     return {
       nodeType,
@@ -389,7 +397,7 @@ export class TaskExecutionRepository
       successRate: totalTasks > 0 ? ((statusMap.COMPLETED || 0) / totalTasks) * 100 : 0,
       averageMetrics: avgMetrics,
       timeRange,
-    }
+    };
   }
 
   /**
@@ -404,7 +412,7 @@ export class TaskExecutionRepository
       orderBy: {
         executionOrder: 'asc',
       },
-    })
+    });
   }
 
   /**
@@ -417,49 +425,55 @@ export class TaskExecutionRepository
         inputs: JSON.stringify(inputs),
         lastUpdateAt: new Date(),
       },
-    })
+    });
   }
 
   /**
    * Get execution timeline for a run
    */
-  async getExecutionTimeline(runId: string): Promise<Array<{
-    taskId: string
-    nodeId: string
-    nodeName: string
-    status: ExecutionStatus
-    queuedAt: Date
-    startedAt: Date | null
-    completedAt: Date | null
-    duration: number | null
-    executionOrder: number
-  }>> {
-    return await this.model.findMany({
-      where: { runId },
-      select: {
-        id: true,
-        nodeId: true,
-        nodeName: true,
-        status: true,
-        queuedAt: true,
-        startedAt: true,
-        completedAt: true,
-        duration: true,
-        executionOrder: true,
-      },
-      orderBy: {
-        executionOrder: 'asc',
-      },
-    }).then(tasks => tasks.map(task => ({
-      taskId: task.id,
-      nodeId: task.nodeId,
-      nodeName: task.nodeName,
-      status: task.status,
-      queuedAt: task.queuedAt,
-      startedAt: task.startedAt,
-      completedAt: task.completedAt,
-      duration: task.duration,
-      executionOrder: task.executionOrder,
-    })))
+  async getExecutionTimeline(runId: string): Promise<
+    Array<{
+      taskId: string;
+      nodeId: string;
+      nodeName: string;
+      status: ExecutionStatus;
+      queuedAt: Date;
+      startedAt: Date | null;
+      completedAt: Date | null;
+      duration: number | null;
+      executionOrder: number;
+    }>
+  > {
+    return await this.model
+      .findMany({
+        where: { runId },
+        select: {
+          id: true,
+          nodeId: true,
+          nodeName: true,
+          status: true,
+          queuedAt: true,
+          startedAt: true,
+          completedAt: true,
+          duration: true,
+          executionOrder: true,
+        },
+        orderBy: {
+          executionOrder: 'asc',
+        },
+      })
+      .then(tasks =>
+        tasks.map(task => ({
+          taskId: task.id,
+          nodeId: task.nodeId,
+          nodeName: task.nodeName,
+          status: task.status,
+          queuedAt: task.queuedAt,
+          startedAt: task.startedAt,
+          completedAt: task.completedAt,
+          duration: task.duration,
+          executionOrder: task.executionOrder,
+        }))
+      );
   }
 }

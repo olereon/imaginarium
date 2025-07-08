@@ -1,15 +1,15 @@
-import type { Pipeline } from '@imaginarium/shared';
+import type { PipelineGraph } from '@imaginarium/shared';
 
 export class PipelineEngine {
-  private pipelines = new Map<string, Pipeline>();
+  private pipelines = new Map<string, PipelineGraph>();
 
   async createPipeline(
-    pipeline: Omit<Pipeline, 'id' | 'createdAt' | 'updatedAt'>
-  ): Promise<Pipeline> {
+    pipeline: Omit<PipelineGraph, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<PipelineGraph> {
     const now = new Date();
-    const newPipeline: Pipeline = {
+    const newPipeline: PipelineGraph = {
       ...pipeline,
-      id: `pipe_${Date.now()}`,
+      id: `pipe_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       createdAt: now,
       updatedAt: now,
     };
@@ -18,11 +18,11 @@ export class PipelineEngine {
     return newPipeline;
   }
 
-  async getPipeline(id: string): Promise<Pipeline | null> {
+  async getPipeline(id: string): Promise<PipelineGraph | null> {
     return this.pipelines.get(id) ?? null;
   }
 
-  async updatePipeline(id: string, updates: Partial<Pipeline>): Promise<Pipeline | null> {
+  async updatePipeline(id: string, updates: Partial<PipelineGraph>): Promise<PipelineGraph | null> {
     const pipeline = this.pipelines.get(id);
     if (!pipeline) return null;
 
@@ -42,7 +42,7 @@ export class PipelineEngine {
     return this.pipelines.delete(id);
   }
 
-  validatePipeline(pipeline: Pipeline): { valid: boolean; errors: string[] } {
+  validatePipeline(pipeline: PipelineGraph): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     // Check for cycles
@@ -80,7 +80,7 @@ export class PipelineEngine {
     };
   }
 
-  private hasCycles(pipeline: Pipeline): boolean {
+  private hasCycles(pipeline: PipelineGraph): boolean {
     const adjacencyList = new Map<string, string[]>();
 
     // Build adjacency list
