@@ -2,7 +2,7 @@
   "compilerOptions": {
     /* Language and Environment */
     "target": "ES2022",
-    "lib": ["ES2022", "ES2022.Array", "ES2022.Object", "ES2022.String"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
@@ -12,12 +12,12 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@imaginarium/shared": ["./packages/shared/src"],
-      "@imaginarium/shared/*": ["./packages/shared/src/*"],
-      "@imaginarium/ui": ["./libs/ui/src"],
-      "@imaginarium/ui/*": ["./libs/ui/src/*"],
-      "@imaginarium/core": ["./libs/core/src"],
-      "@imaginarium/core/*": ["./libs/core/src/*"],
+      "@imaginarium/shared": ["../../packages/shared/src"],
+      "@imaginarium/shared/*": ["../../packages/shared/src/*"],
+      "@imaginarium/ui": ["../../libs/ui/src"],
+      "@imaginarium/ui/*": ["../../libs/ui/src/*"],
+      "@imaginarium/core": ["../../libs/core/src"],
+      "@imaginarium/core/*": ["../../libs/core/src/*"],
       "@/*": ["./src/*"]
     },
     "resolveJsonModule": true,
@@ -28,18 +28,7 @@
     "checkJs": false,
 
     /* Emit */
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "./dist",
-    "removeComments": true,
-    "noEmit": false,
-    "importHelpers": true,
-    "downlevelIteration": true,
-    "preserveConstEnums": true,
-    "inlineSourceMap": false,
-    "inlineSources": false,
-    "preserveWatchOutput": true,
+    "noEmit": true,
 
     /* Interop Constraints */
     "isolatedModules": true,
@@ -70,33 +59,11 @@
 
     /* Completeness */
     "skipDefaultLibCheck": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+
+    /* Vite specific */
+    "types": ["vite/client", "node"]
   },
-  "include": [],
-  "exclude": [
-    "node_modules",
-    "**/node_modules",
-    "dist",
-    "**/dist",
-    "build",
-    "**/build",
-    ".turbo",
-    "coverage",
-    "**/coverage",
-    "**/*.test.*",
-    "**/*.spec.*",
-    "**/*.stories.*",
-    "**/test/**",
-    "**/tests/**",
-    "**/__tests__/**",
-    "**/__mocks__/**",
-    "tests/**"
-  ],
-  "references": [
-    { "path": "./packages/shared" },
-    { "path": "./libs/core" },
-    { "path": "./libs/ui" },
-    { "path": "./apps/server" },
-    { "path": "./apps/client" }
-  ]
+  "include": ["src/**/*", "vite.config.ts"],
+  "exclude": ["dist", "node_modules", "../../tests/**/*", "**/tests/**", "**/*.test.*", "**/*.spec.*"]
 }
